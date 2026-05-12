@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>나만의 낚시포인트 - 피싱노트</title>
+  
+  <!-- PWA 매니페스트 및 메타 태그 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="낚시포인트">
+  <link rel="apple-touch-icon" href="icon-512.png">
+  <link rel="icon" type="image/png" href="icon-512.png">
+
+  <style>
+    :root {
+      --pri: #10b981;
+      --pri-dark: #059669;
+      --bg: #ffffff;
+      --t1: #111827;
+      --t2: #4b5563;
+      --t3: #9ca3af;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--t1); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
+    
+    /* 네비게이션바 */
+    header {
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      z-index: 10;
+    }
+    .logo { font-size: 20px; font-weight: 800; color: var(--t1); display: flex; align-items: center; gap: 8px; }
+    .logo img { width: 32px; height: 32px; border-radius: 8px; }
+
+    /* 메인 히어로 섹션 */
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 100px 24px 60px;
+      text-align: center;
+      background: radial-gradient(100% 100% at 50% 0%, #ecfdf5 0%, #ffffff 100%);
+    }
+    
+    .hero-icon {
+      width: 120px; height: 120px;
+      margin-bottom: 32px;
+      border-radius: 28px;
+      box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.15), 0 8px 10px -6px rgba(16, 185, 129, 0.1);
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 12px;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--pri-dark);
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 100px;
+      margin-bottom: 20px;
+      letter-spacing: -0.01em;
+    }
+
+    h1 {
+      font-size: 40px;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      color: var(--t1);
+    }
+    
+    h1 span {
+      background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.desc {
+      font-size: 18px;
+      line-height: 1.6;
+      color: var(--t2);
+      margin-bottom: 40px;
+      max-width: 320px;
+      margin-left: auto; margin-right: auto;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 36px;
+      background: var(--pri);
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      text-decoration: none;
+      border-radius: 100px;
+      box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3), 0 4px 6px -4px rgba(16, 185, 129, 0.2);
+      transition: all 0.2s;
+    }
+    .btn:active { transform: scale(0.97); box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3); }
+
+    .pwa-install-card {
+      margin-top: 40px;
+      background: #f9fafb;
+      border: 1px solid #f3f4f6;
+      padding: 16px 20px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      text-align: left;
+      max-width: 340px;
+    }
+    .pwa-install-card .icon {
+      width: 48px; height: 48px;
+      background: #fff;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      font-size: 24px; flex-shrink: 0;
+    }
+    .pwa-install-card .tx h3 { font-size: 15px; font-weight: 700; color: var(--t1); margin-bottom: 4px; }
+    .pwa-install-card .tx p { font-size: 13px; color: var(--t2); line-height: 1.4; }
+    
+    /* Install Prompt Banner */
+    #install-banner {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; padding: 20px 24px;
+      box-shadow: 0 -10px 25px rgba(0,0,0,0.05);
+      border-top-left-radius: 24px; border-top-right-radius: 24px;
+      display: none; z-index: 100;
+      transform: translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #install-banner.show { transform: translateY(0); display: block; }
+    
+    .install-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+    .install-row img { width: 56px; height: 56px; border-radius: 14px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .install-row div h3 { font-size: 18px; margin-bottom: 4px; }
+    .install-row div p { font-size: 14px; color: var(--t2); }
+    .install-btns { display: flex; gap: 10px; }
+    .install-btns button { flex: 1; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; border: none; cursor: pointer; }
+    .btn-cancel { background: #f3f4f6; color: var(--t2); }
+    .btn-install { background: var(--pri); color: white; }
+
+    @media (max-width: 400px) {
+      h1 { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <img src="icon-512.png" alt="Logo">
+      피싱노트
+    </div>
+  </header>
+
+  <main class="hero">
+    <img src="icon-512.png" alt="App Icon" class="hero-icon">
+    
+    <div class="badge">V 2.0 업데이트 완료</div>
+    
+    <h1>나만의 조황을<br><span>완벽하게 기록하다</span></h1>
+    
+    <p class="desc">전국의 비밀 낚시 포인트부터 실시간 바다 날씨, 상세한 조황 일지까지 한 곳에서 관리하세요.</p>
+    
+    <a href="낚시포인트.html" class="btn">웹에서 바로 시작하기</a>
+    
+    <div class="pwa-install-card">
+      <div class="icon">📱</div>
+      <div class="tx">
+        <h3>홈 화면에 추가해보세요</h3>
+        <p>사파리(Safari) 하단의 '공유' 버튼을 누르고 <b>'홈 화면에 추가'</b>를 선택하시면 일반 앱처럼 빠르고 편하게 쓸 수 있습니다!</p>
+      </div>
+    </div>
+  </main>
+
+  <div id="install-banner">
+    <div class="install-row">
+      <img src="icon-512.png" alt="Icon">
+      <div>
+        <h3>앱 설치하기</h3>
+        <p>홈 화면에 추가하고 더 빠르게 접속하세요.</p>
+      </div>
+    </div>
+    <div class="install-btns">
+      <button class="btn-cancel" onclick="closeInstall()">나중에</button>
+      <button class="btn-install" id="btn-install">설치하기</button>
+    </div>
+  </div>
+
+  <script>
+    let deferredPrompt;
+    const installBanner = document.getElementById('install-banner');
+    const installBtn = document.getElementById('btn-install');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBanner.style.display = 'block';
+      setTimeout(() => { installBanner.classList.add('show'); }, 50);
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('User accepted the A2HS prompt');
+        }
+        deferredPrompt = null;
+        closeInstall();
+      }
+    });
+
+    function closeInstall() {
+      installBanner.classList.remove('show');
+      setTimeout(() => { installBanner.style.display = 'none'; }, 400);
+    }
+  </script>
+</body>
+</html>
