@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>나만의 낚시포인트 - 피싱노트</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="낚시포인트">
+  <link rel="apple-touch-icon" href="icon-512.png">
+  <link rel="icon" type="image/png" href="icon-512.png">
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --t1: #111827;
+      --pri: #10b981;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+    body { 
+      background-color: var(--bg); 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center; 
+      height: 100vh; 
+      overflow: hidden; 
+      background: radial-gradient(100% 100% at 50% 0%, #ecfdf5 0%, #ffffff 100%);
+    }
+    
+    .splash-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    .hero-icon {
+      width: 120px; height: 120px;
+      margin-bottom: 24px;
+      border-radius: 28px;
+      box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.15), 0 8px 10px -6px rgba(16, 185, 129, 0.1);
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: scale(0.95); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--t1);
+    }
+    
+    h1 span {
+      background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .spinner {
+      margin-top: 30px;
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(16, 185, 129, 0.2);
+      border-top-color: var(--pri);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="splash-content">
+    <img src="icon-512.png" alt="App Icon" class="hero-icon">
+    <h1>피싱노트</h1>
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    // 1.5초 후 실제 앱(낚시포인트.html)으로 자동 이동
+    setTimeout(function() {
+      window.location.replace('낚시포인트.html');
+    }, 1500);
+  </script>
+</body>
+</html>
