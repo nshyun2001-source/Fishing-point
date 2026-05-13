@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>낚시포인트</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="낚시포인트">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="icon" type="image/png" href="icon-512.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+:root{
+  --g:#1D9E75;--g2:#0F6E56;--g3:#E8F8F2;--g4:#B2E8D4;
+  --r:#D85A30;--r2:#FEF0EB;--y:#B07010;--y2:#FEF3DF;
+  --bl:#2563EB;--bl2:#1D4ED8;--bl3:#EFF6FF;--bl4:#BFDBFE;
+  --bg:#F6F6F4;--bg2:#FFFFFF;--bg3:#EEEEED;
+  --t1:#111;--t2:#555;--t3:#999;
+  --bd:rgba(0,0,0,.09);--bd2:rgba(0,0,0,.15);
+  --rd:8px;--rd2:14px;--rd3:20px;
+  --F:-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+.splash-screen { position: fixed; inset: 0; background: radial-gradient(100% 100% at 50% 0%, #ecfdf5 0%, #ffffff 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.5s ease-out, visibility 0.5s ease-out; }
+.splash-content { display: flex; flex-direction: column; align-items: center; animation: fadeIn 0.8s ease-out; }
+.hero-icon { width: 120px; height: 120px; margin-bottom: 24px; border-radius: 28px; box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.15), 0 8px 10px -6px rgba(16, 185, 129, 0.1); animation: float 3s ease-in-out infinite; }
+@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+@keyframes fadeIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+.splash-title { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; color: #111827; }
+.splash-title span { background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.spinner { margin-top: 30px; width: 24px; height: 24px; border: 3px solid rgba(16, 185, 129, 0.2); border-top-color: #10b981; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+html,body,#root{width:100%;height:100%;overflow:hidden;font-family:var(--F);background:var(--bg);-webkit-font-smoothing:antialiased;color:var(--t1);}
+#root{display:flex;flex-direction:column;}
+.pg{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:30px;}
+.pg::-webkit-scrollbar{display:none;}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);background:var(--bg2);border-top:1px solid var(--bd);padding:6px 0 max(14px,env(safe-area-inset-bottom));flex-shrink:0;position:relative;z-index:50;}
+.tab{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px;color:var(--t3);font-size:11px;font-family:var(--F);user-select:none;}
+.tab.on{color:var(--g);}
+.tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;display:block;}
+.fab-wrap{display:flex;justify-content:center;align-items:flex-start;z-index:51;}
+.fab{width:48px;height:48px;border-radius:24px;background:var(--g);border:none;display:grid;place-items:center;cursor:pointer;margin-top:-12px;box-shadow:0 4px 12px rgba(29,158,117,.4);z-index:51;}
+.fab svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
+.ov{position:fixed;inset:0;background:var(--bg);z-index:200;transform:translateX(102%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;}
+.ov.show{transform:none;}
+.nav{display:flex;align-items:center;gap:8px;padding:12px 14px 10px;background:var(--bg2);border-bottom:1px solid var(--bd);flex-shrink:0;position:sticky;top:0;z-index:20;}
+.nav-tx{flex:1;min-width:0;}
+.nav-tx h1{font-size:18px;font-weight:600;color:var(--t1);}
+.nav-tx p{font-size:13px;color:var(--t3);margin-top:1px;}
+.nb,.ib{width:34px;height:34px;border-radius:var(--rd);background:var(--bg3);border:none;display:grid;place-items:center;cursor:pointer;flex-shrink:0;color:var(--t1);}
+.nb svg,.ib svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.phd{padding:14px 14px 10px;background:var(--bg2);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:10;}
+.phd .eyebrow{font-size:12px;color:var(--t3);font-weight:500;letter-spacing:.04em;text-transform:uppercase;margin-bottom:3px;}
+.phd h1{font-size:23px;font-weight:700;color:var(--t1);}
+.section{padding:12px 14px 0;}
+.card{background:var(--bg2);border-radius:var(--rd2);border:1px solid var(--bd);padding:14px;}
+.card+.card{margin-top:10px;}
+.card-h{font-size:15px;font-weight:600;color:var(--t1);margin-bottom:10px;}
+.hero-card{background:var(--bg2);border-radius:var(--rd2);border:1px solid var(--bd);overflow:hidden;}
+.hero-top{background:var(--g3);padding:14px;border-bottom:1px solid var(--g4);}
+.hero-top .eyebrow{font-size:12px;font-weight:600;color:var(--g2);letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px;}
+.hero-top h2{font-size:17px;font-weight:600;color:var(--g2);line-height:1.4;}
+.hero-bot{padding:12px 14px 14px;}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.kpi{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rd);padding:12px 13px;cursor:pointer;}
+.kpi .lb{font-size:12px;color:var(--t3);font-weight:500;letter-spacing:.04em;text-transform:uppercase;margin-bottom:3px;}
+.kpi .vl{font-size:25px;font-weight:700;color:var(--t1);line-height:1;}
+.kpi .vl .u{font-size:13px;font-weight:400;color:var(--t2);margin-left:2px;}
+.kpi .dl{font-size:12px;color:var(--g);margin-top:3px;}
+.kpi .dl.dim{color:var(--t3);}
+.rows{display:flex;flex-direction:column;}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer;}
+.row:last-child{border-bottom:none;}
+.row:active{opacity:.7;}
+.row.nd{cursor:default;}.row.nd:active{opacity:1;}
+.ri{width:38px;height:38px;border-radius:var(--rd);background:var(--g3);display:grid;place-items:center;color:var(--g);flex-shrink:0;}
+.ri svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.rt{flex:1;min-width:0;}
+.rt .a{font-size:15px;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rt .b{font-size:13px;color:var(--t3);margin-top:2px;}
+.re{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;}
+.chip{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:12px;white-space:nowrap;font-weight:500;}
+.chip.g{background:var(--g3);color:var(--g2);}
+.chip.r{background:var(--r2);color:var(--r);}
+.chip.y{background:var(--y2);color:var(--y);}
+.chip.n{background:var(--bg3);color:var(--t2);}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:13px;border:1px solid var(--bd);background:var(--bg2);color:var(--t2);cursor:pointer;font-weight:500;white-space:nowrap;}
+.tag.on{background:var(--g);border-color:var(--g);color:#fff;}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:13px;border-radius:var(--rd);border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--F);}
+.btn.pri{background:var(--g);color:#fff;}
+.btn.pri:active{background:var(--g2);}
+.btn.sec{background:var(--bg3);color:var(--t1);}
+.btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+.btn.pri svg{stroke:#fff;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ic{background:var(--bg3);border-radius:var(--rd);padding:10px 12px;}
+.ic .ik{font-size:12px;color:var(--t3);margin-bottom:3px;}
+.ic .iv{font-size:16px;font-weight:600;color:var(--t1);}
+.tide{position:relative;height:4px;border-radius:99px;background:var(--bd2);margin-top:10px;cursor:pointer;}
+.tide .fill{position:absolute;left:0;top:0;height:100%;width:32%;background:var(--g);border-radius:99px;}
+.tide .pin{position:absolute;top:-5px;left:32%;width:14px;height:14px;border-radius:7px;background:var(--g);border:2px solid var(--bg2);transform:translateX(-50%);}
+.tide-lbs{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--t3);}
+.seg{display:inline-flex;background:var(--bg3);border-radius:var(--rd);padding:2px;border:1px solid var(--bd);}
+.seg button{background:none;border:none;padding:6px 14px;font-size:13px;font-weight:500;color:var(--t2);border-radius:6px;cursor:pointer;font-family:var(--F);}
+.seg button.on{background:var(--bg2);color:var(--g);box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.bars{display:flex;align-items:flex-end;gap:4px;height:90px;}
+.bar{flex:1;border-radius:3px 3px 0 0;min-height:3px;}
+.bar.g{background:var(--g);}
+.bar.r{background:var(--r);}
+.bar.d{background:var(--bg3);}
+.blbs{display:flex;justify-content:space-between;margin-top:4px;}
+.blbs span{flex:1;text-align:center;font-size:11px;color:var(--t3);}
+.gauge{height:5px;border-radius:99px;background:var(--bg3);overflow:hidden;margin-top:5px;}
+.gauge .fill{height:100%;border-radius:99px;}
+.tl{padding-left:18px;position:relative;}
+.tl::before{content:'';position:absolute;left:5px;top:8px;bottom:8px;width:1.5px;background:var(--bd2);}
+.tle{position:relative;padding-bottom:10px;cursor:pointer;}
+.tle::before{content:'';position:absolute;left:-18px;top:8px;width:12px;height:12px;border-radius:6px;background:var(--bg2);border:2px solid var(--g);}
+.tlc{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rd2);padding:12px 13px;}
+.tldate{font-size:12px;font-weight:600;color:var(--g);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-hd{text-align:center;font-size:12px;font-weight:500;color:var(--t3);padding:2px 0;}
+.cd{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--t2);}
+.cd.has{background:var(--g3);color:var(--g2);font-weight:700;cursor:pointer;}
+.cd.today{border:1.5px solid var(--g);color:var(--t1);}
+.cd.sel{background:var(--g);color:#fff;font-weight:700;}
+.mapbg{position:absolute;inset:0;background:linear-gradient(180deg,#daeee5,#c5e5d5);}
+.mk{position:absolute;width:26px;height:26px;border-radius:50% 50% 50% 0;transform:translate(-50%,-100%) rotate(-45deg);border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:pointer;transition:transform .18s;}
+.mk:active,.mk.on{transform:translate(-50%,-115%) rotate(-45deg) scale(1.2);}
+.mk.g{background:var(--g);}.mk.y{background:#B07010;}.mk.r{background:var(--r);}.mk.bl{background:var(--bl);}
+.mpop{position:absolute;transform:translate(-50%,-100%);background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rd);padding:8px 11px;box-shadow:0 4px 16px rgba(0,0,0,.14);pointer-events:none;white-space:nowrap;}
+.mpop .a{font-size:14px;font-weight:600;color:var(--t1);}
+.mpop .b{font-size:12px;color:var(--g);margin-top:2px;}
+.bsheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg2);border-radius:var(--rd3) var(--rd3) 0 0;border-top:1px solid var(--bd);padding:10px 14px 14px;}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--bd2);margin:0 auto 12px;}
+.msearch{position:absolute;top:10px;left:10px;right:10px;display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rd);padding:9px 12px;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+.msearch svg{width:16px;height:16px;stroke:var(--t3);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.msearch input{flex:1;border:none;background:none;font-size:15px;font-family:var(--F);color:var(--t1);outline:none;}
+.fl{margin-bottom:10px;}
+.fl label{display:block;font-size:12px;font-weight:600;color:var(--t3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;}
+.fl input,.fl textarea,.fl select{width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rd);font-size:15px;font-family:var(--F);color:var(--t1);outline:none;}
+.fl input:focus,.fl textarea:focus,.fl select:focus{border-color:var(--g);background:var(--bg2);}
+.fl textarea{resize:none;line-height:1.5;}
+.pick-chip{display:inline-flex;align-items:center;padding:6px 13px;background:var(--bg3);border:1.5px solid var(--bd);border-radius:20px;font-size:14px;font-weight:500;color:var(--t2);cursor:pointer;white-space:nowrap;transition:all .15s;font-family:var(--F);}
+.pick-chip.sel{background:var(--g3);border-color:var(--g);color:var(--g);font-weight:700;}
+.gr2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.pc{aspect-ratio:1;border-radius:var(--rd);background:var(--bg3);border:1.5px dashed var(--bd2);display:grid;place-items:center;cursor:pointer;color:var(--t3);}
+.pc svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.tgl{width:42px;height:24px;border-radius:12px;background:var(--bd2);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.tgl.on{background:var(--g);}
+.tgl::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:9px;background:#fff;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.tgl.on::after{left:21px;}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:10px 18px;border-radius:var(--rd);font-size:14px;font-weight:500;white-space:nowrap;z-index:999;pointer-events:none;opacity:0;transition:opacity .2s;}
+#toast.show{opacity:1;}
+.row-hr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.row-hr h2{font-size:15px;font-weight:600;color:var(--t1);}
+.slnk{font-size:13px;color:var(--g);cursor:pointer;font-weight:500;}
+.ndot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:4px;background:var(--r);border:2px solid var(--bg2);}
+.env-row{display:flex;gap:6px;flex-wrap:wrap;}
+.env-chip{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:99px;font-size:12px;background:var(--bg3);color:var(--t2);border:1px solid var(--bd);}
+.env-chip svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.chip.bl{background:var(--bl3);color:var(--bl2);}
+.ri.bl{background:var(--bl3);color:var(--bl);}
+.hsearch{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rd);padding:9px 12px;margin:10px 14px 0;transition:border-color .2s,background .2s;}
+.hsearch:focus-within{border-color:var(--g);background:var(--bg2);}
+.hsearch svg{width:16px;height:16px;stroke:var(--t3);fill:none;stroke-width:1.7;flex-shrink:0;}
+.hsearch input{flex:1;border:none;background:none;font-size:15px;font-family:var(--F);color:var(--t1);outline:none;}
+.sr-cat{font-size:12px;font-weight:600;color:var(--t3);letter-spacing:.04em;text-transform:uppercase;padding:12px 0 6px;}
+.sr-empty{text-align:center;padding:28px 0;color:var(--t3);font-size:15px;}
+#log-map,#quick-map{height:180px;border-radius:var(--rd);border:1px solid var(--bd);z-index:0;}
+#quick-map{height:260px;}
+.loc-bar{display:flex;gap:6px;margin-bottom:10px;}
+.loc-bar input{flex:1;}
+.loc-bar button{flex-shrink:0;width:40px;height:40px;border-radius:var(--rd);border:1px solid var(--bd);background:var(--bg3);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.loc-bar button svg{width:16px;height:16px;stroke:var(--g);fill:none;stroke-width:2;}
+.loc-coord{font-size:12px;color:var(--t3);margin-top:6px;}
+#loc-add-btn{width:auto;padding:0 12px;height:40px;border-radius:var(--rd);border:1px solid var(--g);background:var(--g3);display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;color:var(--g2);font-family:var(--F);}
+</style>
+</head>
+<body>
+<div id="splash-screen" class="splash-screen">
+  <div class="splash-content">
+    <img src="icon-512.png" alt="App Icon" class="hero-icon">
+    <h1 class="splash-title">피싱노트</h1>
+    <div class="spinner"></div>
+  </div>
+</div>
+<div id="root">
+  <div class="pg" id="pg"></div>
+  <nav class="tabs" id="tabs">
+    <button class="tab on" id="tb-home" data-go="home">
+      <svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>홈
+    </button>
+    <button class="tab" id="tb-map" data-go="map">
+      <svg viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>지도
+    </button>
+    <div class="fab-wrap">
+      <button class="fab" id="fab-btn">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+    <button class="tab" id="tb-jnl" data-go="jnl">
+      <svg viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg>일지
+    </button>
+    <button class="tab" id="tb-stats" data-go="stats">
+      <svg viewBox="0 0 24 24"><path d="M4 20V8M10 20v-6M16 20V4M22 20H2"/></svg>통계
+    </button>
+  </nav>
+  <div class="ov" id="ov-pt"></div>
+  <div class="ov" id="ov-log"></div>
+  <div class="ov" id="ov-ld"></div>
+  <div class="ov" id="ov-notif"></div>
+  <div class="ov" id="ov-set"></div>
+  <div class="ov" id="ov-sp"></div>
+  <div class="ov" id="ov-boat"></div>
+  <div class="ov" id="ov-search"></div>
+  <div class="ov" id="ov-quick"></div>
+  <div class="ov" id="ov-add-boat"></div>
+  <div class="ov" id="ov-pm"></div>
+  <div class="ov" id="ov-reset-confirm"></div>
+  <div class="ov" id="ov-delete-confirm"></div>
+  <div id="toast"></div>
+  <input type="file" id="photo-file" accept="image/*" multiple style="display:none">
+</div>
+<script>
+var I={
+  fish:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c3-4 8-6 13-6 4 0 5 2 5 2l-3 4 3 4s-1 2-5 2c-5 0-10-2-13-6z"/><circle cx="16" cy="11" r=".6" fill="currentColor"/><path d="M3 12l-1-3M3 12l-1 3"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-7.4 7-13a7 7 0 1 0-14 0c0 5.6 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>',
+  star:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>',
+  starf:'<svg viewBox="0 0 24 24" fill="#B07010" stroke="#B07010" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2H4.5z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>',
+  arr:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M14 6l4 4"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+  del:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>',
+  set:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7.5 7.5 0 0 0-.2-1.6l1.9-1.5-1.9-3.3-2.3.9a7 7 0 0 0-2.6-1.5L13.7 3h-3.4l-.4 2.1A7 7 0 0 0 7.3 6.6L5 5.7 3.1 9l1.9 1.5A7.5 7.5 0 0 0 4.8 12a7.5 7.5 0 0 0 .2 1.6L3.1 15l1.9 3.3 2.3-.9a7 7 0 0 0 2.6 1.5l.4 2.1h3.4l.4-2.1a7 7 0 0 0 2.6-1.5l2.3.9 1.9-3.3-1.9-1.5c.1-.5.1-1 .1-1.5z"/></svg>',
+  chv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;color:var(--t3)"><path d="M9 6l6 6-6 6"/></svg>',
+  src:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--t3);cursor:pointer"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  thm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14V5a2 2 0 1 0-4 0v9a4 4 0 1 0 4 0z"/></svg>',
+  anc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v15M5 14a7 7 0 0 0 14 0"/><path d="M8 11H4M16 11h4"/></svg>',
+  wav:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 5-2"/><path d="M2 14c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 5-2"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg>',
+  drp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 1 1-12 0c0-4.5 6-11 6-11z"/></svg>',
+  wnd:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 12h17a3 3 0 1 1-3 3"/><path d="M3 16h7"/></svg>',
+  boat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20c2-1 4-1 6 0s4 1 6 0 4-1 6 0"/><path d="M4 17l2-10h12l2 10"/><path d="M12 7V3"/><path d="M8 7h8"/></svg>',
+  phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3.1 5.2 2 2 0 0 1 5 3h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L9 10.6a16 16 0 0 0 6.6 6.6l1.2-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.7a2 2 0 0 1 1.5 2"/></svg>',
+};
+var PTS=[
+  {'id': 'p1', 'nm': '대부도 방파제', 'rg': '경기', 'ds': 0, 'dp': '14–19m', 'sp': ['광어', '농어', '우럭'], 'rt': 4.4, 'tp': '방파제', 'lat': 37.2541, 'lng': 126.5981, 'mo': [43, 47, 34, 5, 37, 27, 2, 1, 5, 13, 14, 32]},
+  {'id': 'p2', 'nm': '안산 내항', 'rg': '경기', 'ds': 0, 'dp': '10–26m', 'sp': ['삼치', '우럭', '광어'], 'rt': 4.5, 'tp': '항구', 'lat': 37.3196, 'lng': 126.7483, 'mo': [44, 27, 21, 17, 9, 13, 48, 21, 6, 5, 24, 6]},
+  {'id': 'p3', 'nm': '인천 남항 수중여', 'rg': '경기', 'ds': 0, 'dp': '9–16m', 'sp': ['주꾸미', '우럭', '갑오징어'], 'rt': 4.7, 'tp': '선상', 'lat': 37.4549, 'lng': 126.6037, 'mo': [18, 40, 39, 23, 36, 12, 45, 4, 2, 42, 14, 49]},
+  {'id': 'p4', 'nm': '대부도 해상', 'rg': '경기', 'ds': 0, 'dp': '8–18m', 'sp': ['망둥어', '광어', '삼치'], 'rt': 4.3, 'tp': '선상', 'lat': 37.2495, 'lng': 126.6021, 'mo': [22, 13, 42, 17, 44, 43, 41, 4, 38, 40, 10, 34]},
+  {'id': 'p5', 'nm': '전곡항 뜬방파제', 'rg': '경기', 'ds': 0, 'dp': '11–36m', 'sp': ['삼치', '우럭', '광어'], 'rt': 4.3, 'tp': '방파제', 'lat': 37.1849, 'lng': 126.649, 'mo': [2, 20, 25, 17, 4, 13, 36, 45, 20, 13, 41, 31]},
+  {'id': 'p6', 'nm': '전곡항 선착장', 'rg': '경기', 'ds': 0, 'dp': '7–32m', 'sp': ['망둥어', '농어', '갑오징어'], 'rt': 4.0, 'tp': '항구', 'lat': 37.1852, 'lng': 126.6514, 'mo': [27, 37, 25, 23, 14, 8, 32, 31, 5, 48, 3, 7]},
+  {'id': 'p7', 'nm': '안산 해수욕장', 'rg': '경기', 'ds': 0, 'dp': '6–20m', 'sp': ['주꾸미', '갑오징어', '망둥어'], 'rt': 4.3, 'tp': '항구', 'lat': 37.3157, 'lng': 126.7493, 'mo': [35, 0, 43, 46, 7, 43, 34, 48, 17, 49, 41, 21]},
+  {'id': 'p8', 'nm': '평택항 방파제', 'rg': '경기', 'ds': 0, 'dp': '13–42m', 'sp': ['망둥어', '갑오징어', '광어'], 'rt': 4.8, 'tp': '방파제', 'lat': 36.9746, 'lng': 126.8512, 'mo': [32, 6, 40, 19, 40, 32, 38, 12, 9, 23, 48, 10]},
+  {'id': 'p9', 'nm': '소래포구 해수욕장', 'rg': '경기', 'ds': 0, 'dp': '7–33m', 'sp': ['망둥어', '삼치', '광어'], 'rt': 4.3, 'tp': '항구', 'lat': 37.3991, 'lng': 126.7287, 'mo': [3, 15, 36, 5, 5, 46, 31, 4, 48, 34, 49, 8]},
+  {'id': 'p10', 'nm': '궁평항 외항', 'rg': '경기', 'ds': 0, 'dp': '6–21m', 'sp': ['광어', '갑오징어', '삼치'], 'rt': 3.8, 'tp': '항구', 'lat': 37.117, 'lng': 126.6829, 'mo': [45, 19, 25, 42, 41, 23, 28, 33, 28, 7, 15, 14]},
+  {'id': 'p11', 'nm': '제부도 해수욕장', 'rg': '경기', 'ds': 0, 'dp': '14–37m', 'sp': ['농어', '우럭', '광어'], 'rt': 4.3, 'tp': '항구', 'lat': 37.1658, 'lng': 126.6183, 'mo': [4, 2, 21, 4, 32, 15, 17, 42, 31, 13, 34, 8]},
+  {'id': 'p12', 'nm': '아산만 해상', 'rg': '경기', 'ds': 0, 'dp': '6–18m', 'sp': ['주꾸미', '망둥어', '삼치'], 'rt': 4.0, 'tp': '선상', 'lat': 36.7595, 'lng': 126.8644, 'mo': [26, 29, 46, 3, 43, 41, 41, 6, 3, 25, 46, 21]},
+  {'id': 'p13', 'nm': '평택항 선착장', 'rg': '경기', 'ds': 0, 'dp': '12–23m', 'sp': ['광어', '우럭', '주꾸미'], 'rt': 4.8, 'tp': '항구', 'lat': 36.9693, 'lng': 126.8452, 'mo': [35, 6, 3, 41, 34, 0, 5, 48, 15, 10, 26, 31]},
+  {'id': 'p14', 'nm': '인천 남항 선착장', 'rg': '경기', 'ds': 0, 'dp': '5–28m', 'sp': ['망둥어', '주꾸미', '삼치'], 'rt': 4.6, 'tp': '항구', 'lat': 37.4533, 'lng': 126.6039, 'mo': [27, 44, 46, 50, 35, 42, 45, 31, 9, 12, 18, 13]},
+  {'id': 'p15', 'nm': '인천 남항 앞바다', 'rg': '경기', 'ds': 0, 'dp': '8–31m', 'sp': ['갑오징어', '삼치', '광어'], 'rt': 4.5, 'tp': '항구', 'lat': 37.4501, 'lng': 126.5998, 'mo': [3, 32, 5, 11, 4, 38, 4, 43, 15, 25, 7, 36]},
+  {'id': 'p16', 'nm': '시화 해상', 'rg': '경기', 'ds': 0, 'dp': '6–11m', 'sp': ['망둥어', '삼치', '광어'], 'rt': 4.3, 'tp': '선상', 'lat': 37.313, 'lng': 126.7033, 'mo': [42, 45, 20, 15, 16, 25, 8, 42, 41, 19, 29, 20]},
+  {'id': 'p17', 'nm': '대부도 갯바위', 'rg': '경기', 'ds': 0, 'dp': '15–37m', 'sp': ['광어', '망둥어', '우럭'], 'rt': 4.1, 'tp': '갯바위', 'lat': 37.2521, 'lng': 126.6008, 'mo': [15, 23, 18, 10, 28, 34, 45, 19, 39, 41, 33, 0]},
+  {'id': 'p18', 'nm': '대부도 선착장', 'rg': '경기', 'ds': 0, 'dp': '9–15m', 'sp': ['농어', '갑오징어', '광어'], 'rt': 3.9, 'tp': '항구', 'lat': 37.2493, 'lng': 126.6046, 'mo': [17, 18, 38, 13, 45, 21, 13, 43, 40, 16, 32, 31]},
+  {'id': 'p19', 'nm': '안산 외항', 'rg': '경기', 'ds': 0, 'dp': '13–19m', 'sp': ['광어', '농어', '망둥어'], 'rt': 4.7, 'tp': '항구', 'lat': 37.3155, 'lng': 126.7488, 'mo': [10, 47, 28, 35, 45, 27, 35, 0, 7, 4, 44, 9]},
+  {'id': 'p20', 'nm': '영흥도 해상', 'rg': '경기', 'ds': 0, 'dp': '8–18m', 'sp': ['삼치', '우럭', '망둥어'], 'rt': 4.9, 'tp': '선상', 'lat': 37.2805, 'lng': 126.4652, 'mo': [13, 43, 15, 42, 6, 22, 49, 35, 26, 39, 47, 9]},
+  {'id': 'p21', 'nm': '궁평항 해상', 'rg': '경기', 'ds': 0, 'dp': '9–39m', 'sp': ['망둥어', '주꾸미', '광어'], 'rt': 4.8, 'tp': '선상', 'lat': 37.1119, 'lng': 126.6842, 'mo': [17, 10, 50, 44, 6, 24, 2, 30, 14, 12, 29, 22]},
+  {'id': 'p22', 'nm': '제부도 방파제', 'rg': '경기', 'ds': 0, 'dp': '9–15m', 'sp': ['망둥어', '우럭', '삼치'], 'rt': 3.9, 'tp': '방파제', 'lat': 37.1702, 'lng': 126.6216, 'mo': [22, 41, 32, 25, 43, 34, 21, 1, 7, 16, 11, 37]},
+  {'id': 'p23', 'nm': '안산 앞바다', 'rg': '경기', 'ds': 0, 'dp': '15–26m', 'sp': ['갑오징어', '삼치', '우럭'], 'rt': 4.2, 'tp': '항구', 'lat': 37.3224, 'lng': 126.7486, 'mo': [24, 36, 12, 16, 2, 45, 27, 0, 33, 34, 43, 46]},
+  {'id': 'p24', 'nm': '시화 앞바다', 'rg': '경기', 'ds': 0, 'dp': '15–32m', 'sp': ['우럭', '농어', '망둥어'], 'rt': 4.5, 'tp': '항구', 'lat': 37.3126, 'lng': 126.7042, 'mo': [32, 19, 42, 26, 20, 25, 44, 18, 35, 8, 12, 26]},
+  {'id': 'p25', 'nm': '궁평항 해수욕장', 'rg': '경기', 'ds': 0, 'dp': '8–29m', 'sp': ['삼치', '우럭', '망둥어'], 'rt': 4.3, 'tp': '항구', 'lat': 37.1174, 'lng': 126.6809, 'mo': [18, 13, 27, 50, 37, 38, 41, 20, 29, 28, 28, 43]},
+  {'id': 'p26', 'nm': '궁평항 갯바위', 'rg': '경기', 'ds': 0, 'dp': '6–25m', 'sp': ['갑오징어', '망둥어', '우럭'], 'rt': 4.3, 'tp': '갯바위', 'lat': 37.1145, 'lng': 126.6834, 'mo': [48, 15, 43, 19, 14, 12, 9, 1, 2, 15, 30, 39]},
+  {'id': 'p27', 'nm': '강화도 해상', 'rg': '경기', 'ds': 0, 'dp': '8–16m', 'sp': ['농어', '삼치', '우럭'], 'rt': 4.3, 'tp': '선상', 'lat': 37.7419, 'lng': 126.4974, 'mo': [48, 49, 6, 49, 27, 14, 11, 44, 33, 29, 3, 35]},
+  {'id': 'p28', 'nm': '평택항 뜬방파제', 'rg': '경기', 'ds': 0, 'dp': '15–28m', 'sp': ['삼치', '주꾸미', '갑오징어'], 'rt': 4.6, 'tp': '방파제', 'lat': 36.975, 'lng': 126.8484, 'mo': [46, 32, 27, 35, 28, 10, 47, 30, 28, 16, 48, 15]},
+  {'id': 'p29', 'nm': '아산만 내항', 'rg': '경기', 'ds': 0, 'dp': '6–24m', 'sp': ['망둥어', '광어', '삼치'], 'rt': 4.2, 'tp': '항구', 'lat': 36.7603, 'lng': 126.8642, 'mo': [21, 20, 34, 5, 8, 9, 14, 24, 44, 9, 45, 13]},
+  {'id': 'p30', 'nm': '평택항 해상', 'rg': '경기', 'ds': 0, 'dp': '13–43m', 'sp': ['주꾸미', '갑오징어', '우럭'], 'rt': 4.5, 'tp': '선상', 'lat': 36.9657, 'lng': 126.8507, 'mo': [48, 36, 24, 30, 0, 22, 19, 48, 24, 26, 34, 47]},
+  {'id': 'p31', 'nm': '제부도 수중여', 'rg': '경기', 'ds': 0, 'dp': '14–40m', 'sp': ['우럭', '주꾸미', '망둥어'], 'rt': 3.8, 'tp': '선상', 'lat': 37.1658, 'lng': 126.622, 'mo': [42, 43, 25, 46, 10, 29, 8, 39, 34, 1, 25, 37]},
+  {'id': 'p32', 'nm': '안산 선착장', 'rg': '경기', 'ds': 0, 'dp': '5–33m', 'sp': ['망둥어', '주꾸미', '삼치'], 'rt': 4.4, 'tp': '항구', 'lat': 37.3238, 'lng': 126.7473, 'mo': [13, 29, 20, 21, 48, 24, 17, 48, 26, 16, 5, 30]},
+  {'id': 'p33', 'nm': '월곶 내항', 'rg': '경기', 'ds': 0, 'dp': '12–39m', 'sp': ['농어', '우럭', '삼치'], 'rt': 4.1, 'tp': '항구', 'lat': 37.39, 'lng': 126.7423, 'mo': [15, 12, 1, 39, 9, 15, 8, 30, 42, 7, 36, 13]},
+  {'id': 'p34', 'nm': '월곶 선착장', 'rg': '경기', 'ds': 0, 'dp': '14–41m', 'sp': ['농어', '우럭', '광어'], 'rt': 4.7, 'tp': '항구', 'lat': 37.3896, 'lng': 126.7441, 'mo': [19, 6, 37, 1, 19, 36, 43, 24, 25, 45, 12, 4]},
+  {'id': 'p35', 'nm': '제부도 갯바위', 'rg': '경기', 'ds': 0, 'dp': '10–15m', 'sp': ['농어', '갑오징어', '우럭'], 'rt': 4.7, 'tp': '갯바위', 'lat': 37.1706, 'lng': 126.6206, 'mo': [50, 36, 50, 2, 22, 34, 27, 42, 23, 4, 32, 41]},
+  {'id': 'p36', 'nm': '천수만 갯바위', 'rg': '충남', 'ds': 0, 'dp': '14–27m', 'sp': ['농어', '갑오징어', '광어'], 'rt': 4.2, 'tp': '갯바위', 'lat': 36.5114, 'lng': 126.4369, 'mo': [27, 11, 46, 33, 41, 17, 39, 34, 49, 30, 29, 27]},
+  {'id': 'p37', 'nm': '마량항 갯바위', 'rg': '충남', 'ds': 0, 'dp': '10–23m', 'sp': ['농어', '갑오징어', '삼치'], 'rt': 4.8, 'tp': '갯바위', 'lat': 36.1307, 'lng': 126.5389, 'mo': [39, 42, 24, 21, 1, 31, 20, 11, 31, 13, 22, 16]},
+  {'id': 'p38', 'nm': '장고항 뜬방파제', 'rg': '충남', 'ds': 0, 'dp': '6–20m', 'sp': ['우럭', '광어', '갑오징어'], 'rt': 4.0, 'tp': '방파제', 'lat': 36.3472, 'lng': 126.5207, 'mo': [31, 35, 48, 15, 44, 30, 41, 45, 31, 28, 50, 1]},
+  {'id': 'p39', 'nm': '마량항 외항', 'rg': '충남', 'ds': 0, 'dp': '8–23m', 'sp': ['삼치', '농어', '주꾸미'], 'rt': 3.9, 'tp': '항구', 'lat': 36.1345, 'lng': 126.5381, 'mo': [27, 47, 35, 21, 22, 44, 29, 17, 19, 16, 14, 7]},
+  {'id': 'p40', 'nm': '대천 내항', 'rg': '충남', 'ds': 0, 'dp': '7–20m', 'sp': ['망둥어', '삼치', '농어'], 'rt': 3.9, 'tp': '항구', 'lat': 36.3276, 'lng': 126.5102, 'mo': [38, 18, 6, 12, 18, 14, 23, 11, 19, 0, 45, 34]},
+  {'id': 'p41', 'nm': '안면도 뜬방파제', 'rg': '충남', 'ds': 0, 'dp': '6–23m', 'sp': ['망둥어', '갑오징어', '우럭'], 'rt': 4.3, 'tp': '방파제', 'lat': 36.5039, 'lng': 126.3749, 'mo': [0, 36, 18, 30, 30, 28, 21, 11, 3, 16, 30, 7]},
+  {'id': 'p42', 'nm': '안면도 선착장', 'rg': '충남', 'ds': 0, 'dp': '12–31m', 'sp': ['주꾸미', '우럭', '광어'], 'rt': 4.1, 'tp': '항구', 'lat': 36.5025, 'lng': 126.3711, 'mo': [7, 35, 48, 26, 38, 38, 50, 39, 14, 49, 33, 24]},
+  {'id': 'p43', 'nm': '보령 외항', 'rg': '충남', 'ds': 0, 'dp': '11–30m', 'sp': ['망둥어', '우럭', '광어'], 'rt': 4.6, 'tp': '항구', 'lat': 36.3337, 'lng': 126.6077, 'mo': [40, 13, 16, 42, 5, 10, 15, 11, 35, 4, 10, 0]},
+  {'id': 'p44', 'nm': '천수만 외항', 'rg': '충남', 'ds': 0, 'dp': '13–25m', 'sp': ['주꾸미', '망둥어', '갑오징어'], 'rt': 4.5, 'tp': '항구', 'lat': 36.5074, 'lng': 126.4362, 'mo': [4, 43, 14, 16, 50, 50, 40, 37, 42, 12, 27, 7]},
+  {'id': 'p45', 'nm': '장고항 선착장', 'rg': '충남', 'ds': 0, 'dp': '12–19m', 'sp': ['주꾸미', '삼치', '망둥어'], 'rt': 4.5, 'tp': '항구', 'lat': 36.3478, 'lng': 126.5129, 'mo': [18, 28, 7, 29, 44, 19, 44, 25, 17, 32, 34, 31]},
+  {'id': 'p46', 'nm': '보령 앞바다', 'rg': '충남', 'ds': 0, 'dp': '15–34m', 'sp': ['광어', '망둥어', '삼치'], 'rt': 4.8, 'tp': '항구', 'lat': 36.334, 'lng': 126.6074, 'mo': [37, 1, 48, 43, 17, 36, 2, 48, 48, 11, 30, 33]},
+  {'id': 'p47', 'nm': '대천 해수욕장', 'rg': '충남', 'ds': 0, 'dp': '11–40m', 'sp': ['우럭', '갑오징어', '주꾸미'], 'rt': 4.4, 'tp': '항구', 'lat': 36.3298, 'lng': 126.5135, 'mo': [26, 21, 20, 42, 6, 10, 21, 26, 44, 31, 18, 42]},
+  {'id': 'p48', 'nm': '서천 갯바위', 'rg': '충남', 'ds': 0, 'dp': '15–34m', 'sp': ['농어', '갑오징어', '삼치'], 'rt': 4.6, 'tp': '갯바위', 'lat': 36.0749, 'lng': 126.6903, 'mo': [0, 42, 34, 29, 26, 3, 12, 33, 23, 39, 48, 31]},
+  {'id': 'p49', 'nm': '무창포 외항', 'rg': '충남', 'ds': 0, 'dp': '6–18m', 'sp': ['갑오징어', '망둥어', '농어'], 'rt': 4.9, 'tp': '항구', 'lat': 36.2494, 'lng': 126.5414, 'mo': [7, 1, 40, 38, 15, 45, 10, 19, 35, 0, 35, 26]},
+  {'id': 'p50', 'nm': '오천항 수중여', 'rg': '충남', 'ds': 0, 'dp': '14–35m', 'sp': ['광어', '갑오징어', '주꾸미'], 'rt': 4.6, 'tp': '선상', 'lat': 36.4441, 'lng': 126.5209, 'mo': [32, 45, 17, 26, 30, 30, 15, 29, 35, 9, 24, 12]},
+  {'id': 'p51', 'nm': '홍원항 갯바위', 'rg': '충남', 'ds': 0, 'dp': '12–28m', 'sp': ['갑오징어', '주꾸미', '삼치'], 'rt': 4.2, 'tp': '갯바위', 'lat': 36.3954, 'lng': 126.4743, 'mo': [17, 0, 18, 46, 19, 37, 37, 42, 31, 9, 28, 34]},
+  {'id': 'p52', 'nm': '서산 수중여', 'rg': '충남', 'ds': 0, 'dp': '15–24m', 'sp': ['망둥어', '광어', '삼치'], 'rt': 4.3, 'tp': '선상', 'lat': 36.7887, 'lng': 126.4542, 'mo': [24, 14, 49, 26, 2, 20, 47, 30, 45, 24, 24, 42]},
+  {'id': 'p53', 'nm': '안면도 선착장', 'rg': '충남', 'ds': 0, 'dp': '9–24m', 'sp': ['농어', '우럭', '갑오징어'], 'rt': 4.5, 'tp': '항구', 'lat': 36.506, 'lng': 126.3714, 'mo': [6, 33, 29, 0, 46, 9, 26, 41, 9, 4, 30, 50]},
+  {'id': 'p54', 'nm': '서산 갯바위', 'rg': '충남', 'ds': 0, 'dp': '9–21m', 'sp': ['농어', '삼치', '갑오징어'], 'rt': 4.6, 'tp': '갯바위', 'lat': 36.7879, 'lng': 126.454, 'mo': [20, 40, 45, 48, 31, 34, 2, 39, 4, 15, 40, 43]},
+  {'id': 'p55', 'nm': '보령 갯바위', 'rg': '충남', 'ds': 0, 'dp': '8–29m', 'sp': ['우럭', '갑오징어', '광어'], 'rt': 4.3, 'tp': '갯바위', 'lat': 36.3356, 'lng': 126.6141, 'mo': [44, 19, 1, 2, 20, 50, 3, 18, 22, 23, 27, 9]},
+  {'id': 'p56', 'nm': '대천 선착장', 'rg': '충남', 'ds': 0, 'dp': '9–35m', 'sp': ['갑오징어', '삼치', '광어'], 'rt': 4.4, 'tp': '항구', 'lat': 36.3272, 'lng': 126.5115, 'mo': [31, 37, 9, 14, 29, 40, 16, 29, 16, 42, 0, 29]},
+  {'id': 'p57', 'nm': '신진도 수중여', 'rg': '충남', 'ds': 0, 'dp': '14–28m', 'sp': ['주꾸미', '망둥어', '갑오징어'], 'rt': 4.9, 'tp': '선상', 'lat': 36.7548, 'lng': 126.145, 'mo': [44, 16, 29, 19, 12, 24, 30, 6, 15, 24, 36, 22]},
+  {'id': 'p58', 'nm': '도비도 방파제', 'rg': '충남', 'ds': 0, 'dp': '8–33m', 'sp': ['주꾸미', '우럭', '삼치'], 'rt': 4.0, 'tp': '방파제', 'lat': 36.6261, 'lng': 126.5021, 'mo': [43, 49, 47, 3, 38, 47, 31, 18, 49, 14, 38, 22]},
+  {'id': 'p59', 'nm': '장고항 선착장', 'rg': '충남', 'ds': 0, 'dp': '7–18m', 'sp': ['망둥어', '우럭', '주꾸미'], 'rt': 3.9, 'tp': '항구', 'lat': 36.3534, 'lng': 126.5202, 'mo': [50, 28, 2, 37, 23, 46, 8, 5, 18, 20, 47, 26]},
+  {'id': 'p60', 'nm': '당진 뜬방파제', 'rg': '충남', 'ds': 0, 'dp': '11–41m', 'sp': ['광어', '주꾸미', '갑오징어'], 'rt': 4.4, 'tp': '방파제', 'lat': 36.8907, 'lng': 126.6282, 'mo': [18, 47, 21, 7, 29, 4, 9, 48, 14, 43, 46, 43]},
+  {'id': 'p61', 'nm': '신진도 해상', 'rg': '충남', 'ds': 0, 'dp': '14–26m', 'sp': ['갑오징어', '주꾸미', '망둥어'], 'rt': 4.5, 'tp': '선상', 'lat': 36.7454, 'lng': 126.1405, 'mo': [37, 24, 40, 23, 6, 43, 14, 30, 1, 39, 35, 20]},
+  {'id': 'p62', 'nm': '서천 외항', 'rg': '충남', 'ds': 0, 'dp': '13–31m', 'sp': ['우럭', '농어', '주꾸미'], 'rt': 4.4, 'tp': '항구', 'lat': 36.0783, 'lng': 126.6883, 'mo': [31, 7, 6, 15, 34, 8, 24, 29, 23, 42, 47, 44]},
+  {'id': 'p63', 'nm': '홍원항 해상', 'rg': '충남', 'ds': 0, 'dp': '15–31m', 'sp': ['삼치', '갑오징어', '주꾸미'], 'rt': 3.9, 'tp': '선상', 'lat': 36.3991, 'lng': 126.4747, 'mo': [2, 44, 23, 13, 28, 28, 15, 23, 6, 43, 23, 34]},
+  {'id': 'p64', 'nm': '장고항 내항', 'rg': '충남', 'ds': 0, 'dp': '14–25m', 'sp': ['농어', '갑오징어', '우럭'], 'rt': 3.9, 'tp': '항구', 'lat': 36.3568, 'lng': 126.5207, 'mo': [42, 13, 41, 40, 38, 1, 3, 50, 21, 15, 8, 50]},
+  {'id': 'p65', 'nm': '무창포 해수욕장', 'rg': '충남', 'ds': 0, 'dp': '10–40m', 'sp': ['주꾸미', '광어', '삼치'], 'rt': 4.7, 'tp': '항구', 'lat': 36.2461, 'lng': 126.5408, 'mo': [0, 17, 9, 8, 34, 16, 11, 7, 42, 1, 8, 0]},
+  {'id': 'p66', 'nm': '삼길포 방파제', 'rg': '충남', 'ds': 0, 'dp': '8–32m', 'sp': ['망둥어', '갑오징어', '삼치'], 'rt': 3.8, 'tp': '방파제', 'lat': 37.001, 'lng': 126.4488, 'mo': [7, 47, 4, 30, 28, 49, 23, 32, 37, 6, 28, 32]},
+  {'id': 'p67', 'nm': '도비도 수중여', 'rg': '충남', 'ds': 0, 'dp': '9–33m', 'sp': ['갑오징어', '농어', '망둥어'], 'rt': 4.5, 'tp': '선상', 'lat': 36.6227, 'lng': 126.4958, 'mo': [43, 6, 31, 45, 28, 4, 5, 20, 38, 9, 4, 8]},
+  {'id': 'p68', 'nm': '삼길포 해상', 'rg': '충남', 'ds': 0, 'dp': '12–24m', 'sp': ['갑오징어', '삼치', '망둥어'], 'rt': 4.3, 'tp': '선상', 'lat': 37.0092, 'lng': 126.4536, 'mo': [27, 6, 50, 44, 7, 41, 41, 49, 35, 46, 13, 27]},
+  {'id': 'p69', 'nm': '서천 해상', 'rg': '충남', 'ds': 0, 'dp': '10–40m', 'sp': ['갑오징어', '주꾸미', '망둥어'], 'rt': 3.9, 'tp': '선상', 'lat': 36.076, 'lng': 126.6881, 'mo': [23, 9, 43, 30, 4, 5, 5, 5, 27, 6, 47, 47]},
+  {'id': 'p70', 'nm': '안면도 해수욕장', 'rg': '충남', 'ds': 0, 'dp': '13–24m', 'sp': ['망둥어', '우럭', '갑오징어'], 'rt': 4.0, 'tp': '항구', 'lat': 36.5106, 'lng': 126.3711, 'mo': [22, 42, 48, 27, 46, 3, 18, 38, 19, 22, 6, 36]},
+  {'id': 'p71', 'nm': '홍도 내항', 'rg': '전북 전남', 'ds': 0, 'dp': '5–29m', 'sp': ['전어', '갑오징어', '감성돔'], 'rt': 4.8, 'tp': '항구', 'lat': 34.6949, 'lng': 125.1988, 'mo': [48, 17, 36, 14, 27, 35, 49, 39, 39, 43, 41, 35]},
+  {'id': 'p72', 'nm': '무안 방파제', 'rg': '전북 전남', 'ds': 0, 'dp': '13–24m', 'sp': ['무늬오징어', '갑오징어', '돌돔'], 'rt': 4.2, 'tp': '방파제', 'lat': 34.9872, 'lng': 126.4621, 'mo': [0, 11, 9, 36, 42, 25, 4, 9, 47, 40, 1, 5]},
+  {'id': 'p73', 'nm': '흑산도 앞바다', 'rg': '전북 전남', 'ds': 0, 'dp': '14–33m', 'sp': ['갑오징어', '참돔', '감성돔'], 'rt': 4.3, 'tp': '항구', 'lat': 34.6575, 'lng': 125.4042, 'mo': [9, 10, 48, 39, 3, 43, 5, 17, 28, 42, 27, 31]},
+  {'id': 'p74', 'nm': '고창 뜬방파제', 'rg': '전북 전남', 'ds': 0, 'dp': '7–36m', 'sp': ['무늬오징어', '갈치', '전어'], 'rt': 4.1, 'tp': '방파제', 'lat': 35.4282, 'lng': 126.7017, 'mo': [42, 19, 2, 14, 25, 38, 3, 0, 13, 19, 13, 49]},
+  {'id': 'p75', 'nm': '목포 갯바위', 'rg': '전북 전남', 'ds': 0, 'dp': '5–24m', 'sp': ['돌돔', '전어', '볼락'], 'rt': 4.8, 'tp': '갯바위', 'lat': 34.798, 'lng': 126.3597, 'mo': [34, 45, 14, 32, 35, 42, 22, 4, 25, 47, 2, 27]},
+  {'id': 'p76', 'nm': '목포 해수욕장', 'rg': '전북 전남', 'ds': 0, 'dp': '11–34m', 'sp': ['문어', '무늬오징어', '감성돔'], 'rt': 4.2, 'tp': '항구', 'lat': 34.8022, 'lng': 126.3562, 'mo': [25, 1, 20, 10, 39, 29, 44, 23, 5, 27, 6, 15]},
+  {'id': 'p77', 'nm': '새만금 해상', 'rg': '전북 전남', 'ds': 0, 'dp': '15–24m', 'sp': ['볼락', '갑오징어', '문어'], 'rt': 4.1, 'tp': '선상', 'lat': 35.8362, 'lng': 126.5865, 'mo': [10, 4, 32, 40, 7, 33, 32, 12, 49, 22, 22, 46]},
+  {'id': 'p78', 'nm': '선유도 외항', 'rg': '전북 전남', 'ds': 0, 'dp': '14–29m', 'sp': ['참돔', '돌돔', '문어'], 'rt': 4.8, 'tp': '항구', 'lat': 35.8155, 'lng': 126.4255, 'mo': [40, 31, 29, 48, 36, 48, 37, 28, 43, 36, 41, 40]},
+  {'id': 'p79', 'nm': '목포 선착장', 'rg': '전북 전남', 'ds': 0, 'dp': '15–22m', 'sp': ['무늬오징어', '전어', '갈치'], 'rt': 4.5, 'tp': '항구', 'lat': 34.8023, 'lng': 126.3569, 'mo': [3, 22, 32, 4, 19, 29, 28, 2, 3, 23, 18, 4]},
+  {'id': 'p80', 'nm': '가거도 해상', 'rg': '전북 전남', 'ds': 0, 'dp': '6–27m', 'sp': ['감성돔', '갈치', '문어'], 'rt': 4.5, 'tp': '선상', 'lat': 34.0716, 'lng': 125.1076, 'mo': [36, 41, 12, 20, 38, 30, 32, 9, 3, 28, 6, 21]},
+  {'id': 'p81', 'nm': '격포항 내항', 'rg': '전북 전남', 'ds': 0, 'dp': '10–17m', 'sp': ['전어', '돌돔', '갈치'], 'rt': 4.2, 'tp': '항구', 'lat': 35.6975, 'lng': 126.4845, 'mo': [23, 18, 24, 26, 49, 21, 43, 38, 3, 50, 40, 41]},
+  {'id': 'p82', 'nm': '해남 외항', 'rg': '전북 전남', 'ds': 0, 'dp': '6–20m', 'sp': ['돌돔', '갑오징어', '감성돔'], 'rt': 4.4, 'tp': '항구', 'lat': 34.5687, 'lng': 126.6028, 'mo': [37, 42, 9, 22, 19, 41, 44, 42, 25, 8, 38, 45]},
+  {'id': 'p83', 'nm': '목포 선착장', 'rg': '전북 전남', 'ds': 0, 'dp': '8–20m', 'sp': ['전어', '참돔', '갑오징어'], 'rt': 4.9, 'tp': '항구', 'lat': 34.8046, 'lng': 126.3605, 'mo': [42, 27, 32, 23, 1, 23, 19, 11, 13, 21, 49, 31]},
+  {'id': 'p84', 'nm': '선유도 갯바위', 'rg': '전북 전남', 'ds': 0, 'dp': '7–35m', 'sp': ['전어', '감성돔', '갑오징어'], 'rt': 4.3, 'tp': '갯바위', 'lat': 35.8165, 'lng': 126.4274, 'mo': [21, 49, 39, 8, 38, 24, 9, 10, 11, 44, 49, 39]},
+  {'id': 'p85', 'nm': '완도 앞바다', 'rg': '전북 전남', 'ds': 0, 'dp': '14–33m', 'sp': ['갈치', '무늬오징어', '문어'], 'rt': 4.3, 'tp': '항구', 'lat': 34.3186, 'lng': 126.7572, 'mo': [47, 50, 28, 14, 34, 15, 19, 50, 30, 12, 23, 43]},
+  {'id': 'p86', 'nm': '신안 해상', 'rg': '전북 전남', 'ds': 0, 'dp': '9–16m', 'sp': ['돌돔', '볼락', '문어'], 'rt': 4.6, 'tp': '선상', 'lat': 34.8329, 'lng': 126.3509, 'mo': [38, 8, 16, 3, 41, 30, 23, 35, 6, 45, 33, 7]},
+  {'id': 'p87', 'nm': '무안 수중여', 'rg': '전북 전남', 'ds': 0, 'dp': '8–13m', 'sp': ['문어', '참돔', '갈치'], 'rt': 4.2, 'tp': '선상', 'lat': 34.9945, 'lng': 126.4566, 'mo': [28, 22, 1, 26, 3, 25, 32, 23, 15, 24, 5, 23]},
+  {'id': 'p88', 'nm': '야미도 앞바다', 'rg': '전북 전남', 'ds': 0, 'dp': '13–41m', 'sp': ['무늬오징어', '갈치', '갑오징어'], 'rt': 4.5, 'tp': '항구', 'lat': 35.8477, 'lng': 126.4879, 'mo': [8, 48, 45, 30, 28, 39, 0, 5, 1, 16, 13, 9]},
+  {'id': 'p89', 'nm': '완도 갯바위', 'rg': '전북 전남', 'ds': 0, 'dp': '13–36m', 'sp': ['참돔', '감성돔', '전어'], 'rt': 4.1, 'tp': '갯바위', 'lat': 34.3196, 'lng': 126.7572, 'mo': [26, 40, 50, 39, 29, 4, 7, 31, 38, 34, 1, 40]},
+  {'id': 'p90', 'nm': '선유도 외항', 'rg': '전북 전남', 'ds': 0, 'dp': '5–22m', 'sp': ['볼락', '문어', '참돔'], 'rt': 4.8, 'tp': '항구', 'lat': 35.8178, 'lng': 126.4256, 'mo': [42, 42, 5, 33, 23, 4, 33, 34, 32, 50, 32, 35]},
+  {'id': 'p91', 'nm': '격포항 해상', 'rg': '전북 전남', 'ds': 0, 'dp': '7–13m', 'sp': ['감성돔', '갑오징어', '문어'], 'rt': 4.2, 'tp': '선상', 'lat': 35.7002, 'lng': 126.4771, 'mo': [4, 22, 15, 46, 42, 40, 6, 49, 37, 47, 48, 21]},
+  {'id': 'p92', 'nm': '목포 선착장', 'rg': '전북 전남', 'ds': 0, 'dp': '10–24m', 'sp': ['갈치', '돌돔', '문어'], 'rt': 4.4, 'tp': '항구', 'lat': 34.8062, 'lng': 126.359, 'mo': [8, 4, 45, 49, 29, 2, 18, 12, 2, 50, 12, 2]},
+  {'id': 'p93', 'nm': '홍도 외항', 'rg': '전북 전남', 'ds': 0, 'dp': '10–20m', 'sp': ['무늬오징어', '갑오징어', '문어'], 'rt': 4.3, 'tp': '항구', 'lat': 34.6868, 'lng': 125.2018, 'mo': [49, 3, 41, 21, 17, 7, 23, 27, 25, 47, 28, 24]},
+  {'id': 'p94', 'nm': '홍도 앞바다', 'rg': '전북 전남', 'ds': 0, 'dp': '12–36m', 'sp': ['참돔', '문어', '감성돔'], 'rt': 4.6, 'tp': '항구', 'lat': 34.6956, 'lng': 125.2005, 'mo': [27, 38, 11, 34, 18, 20, 6, 5, 20, 42, 18, 19]},
+  {'id': 'p95', 'nm': '부안 수중여', 'rg': '전북 전남', 'ds': 0, 'dp': '5–14m', 'sp': ['갑오징어', '문어', '돌돔'], 'rt': 4.7, 'tp': '선상', 'lat': 35.7186, 'lng': 126.7265, 'mo': [40, 50, 3, 4, 42, 40, 25, 23, 32, 47, 43, 10]},
+  {'id': 'p96', 'nm': '흑산도 방파제', 'rg': '전북 전남', 'ds': 0, 'dp': '7–28m', 'sp': ['갑오징어', '전어', '볼락'], 'rt': 4.2, 'tp': '방파제', 'lat': 34.6572, 'lng': 125.4035, 'mo': [36, 2, 38, 9, 43, 28, 23, 23, 28, 48, 4, 36]},
+  {'id': 'p97', 'nm': '목포 외항', 'rg': '전북 전남', 'ds': 0, 'dp': '12–23m', 'sp': ['돌돔', '갈치', '무늬오징어'], 'rt': 3.9, 'tp': '항구', 'lat': 34.8004, 'lng': 126.3533, 'mo': [24, 35, 7, 16, 49, 16, 45, 28, 13, 39, 18, 44]},
+  {'id': 'p98', 'nm': '새만금 수중여', 'rg': '전북 전남', 'ds': 0, 'dp': '7–37m', 'sp': ['참돔', '갑오징어', '갈치'], 'rt': 4.2, 'tp': '선상', 'lat': 35.8292, 'lng': 126.5861, 'mo': [22, 45, 4, 35, 34, 18, 19, 10, 45, 45, 44, 40]},
+  {'id': 'p99', 'nm': '영광 갯바위', 'rg': '전북 전남', 'ds': 0, 'dp': '12–33m', 'sp': ['볼락', '갈치', '감성돔'], 'rt': 4.3, 'tp': '갯바위', 'lat': 35.2827, 'lng': 126.5141, 'mo': [23, 35, 36, 23, 29, 35, 8, 39, 5, 4, 19, 25]},
+  {'id': 'p100', 'nm': '완도 해수욕장', 'rg': '전북 전남', 'ds': 0, 'dp': '13–19m', 'sp': ['참돔', '갈치', '볼락'], 'rt': 4.7, 'tp': '항구', 'lat': 34.3125, 'lng': 126.7645, 'mo': [43, 33, 22, 8, 49, 35, 40, 37, 11, 49, 8, 27]},
+  {'id': 'p101', 'nm': '가거도 선착장', 'rg': '전북 전남', 'ds': 0, 'dp': '6–27m', 'sp': ['볼락', '갑오징어', '무늬오징어'], 'rt': 4.5, 'tp': '항구', 'lat': 34.07, 'lng': 125.1037, 'mo': [18, 5, 16, 12, 40, 35, 17, 8, 40, 19, 39, 34]},
+  {'id': 'p102', 'nm': '선유도 선착장', 'rg': '전북 전남', 'ds': 0, 'dp': '14–39m', 'sp': ['갑오징어', '감성돔', '문어'], 'rt': 3.8, 'tp': '항구', 'lat': 35.8201, 'lng': 126.4267, 'mo': [1, 5, 2, 41, 49, 36, 16, 41, 13, 49, 36, 26]},
+  {'id': 'p103', 'nm': '신안 외항', 'rg': '전북 전남', 'ds': 0, 'dp': '10–37m', 'sp': ['문어', '무늬오징어', '볼락'], 'rt': 4.2, 'tp': '항구', 'lat': 34.8327, 'lng': 126.3547, 'mo': [4, 44, 3, 10, 28, 26, 30, 29, 13, 21, 38, 9]},
+  {'id': 'p104', 'nm': '진도 해상', 'rg': '전북 전남', 'ds': 0, 'dp': '11–23m', 'sp': ['전어', '참돔', '돌돔'], 'rt': 4.9, 'tp': '선상', 'lat': 34.3702, 'lng': 126.1331, 'mo': [15, 29, 7, 17, 28, 15, 9, 6, 3, 18, 24, 39]},
+  {'id': 'p105', 'nm': '부안 앞바다', 'rg': '전북 전남', 'ds': 0, 'dp': '14–30m', 'sp': ['볼락', '돌돔', '전어'], 'rt': 3.9, 'tp': '항구', 'lat': 35.7244, 'lng': 126.7333, 'mo': [32, 29, 31, 19, 31, 1, 5, 25, 32, 29, 15, 13]},
+  {'id': 'p106', 'nm': '사량도 수중여', 'rg': '전남 경남', 'ds': 0, 'dp': '5–28m', 'sp': ['갈치', '무늬오징어', '전어'], 'rt': 4.4, 'tp': '선상', 'lat': 34.8191, 'lng': 128.2363, 'mo': [0, 6, 27, 8, 16, 46, 23, 48, 25, 23, 2, 25]},
+  {'id': 'p107', 'nm': '해금강 뜬방파제', 'rg': '전남 경남', 'ds': 0, 'dp': '7–18m', 'sp': ['갈치', '무늬오징어', '문어'], 'rt': 4.5, 'tp': '방파제', 'lat': 34.7306, 'lng': 128.6829, 'mo': [39, 43, 39, 7, 8, 6, 25, 23, 50, 21, 35, 23]},
+  {'id': 'p108', 'nm': '지세포 뜬방파제', 'rg': '전남 경남', 'ds': 0, 'dp': '9–32m', 'sp': ['갑오징어', '갈치', '무늬오징어'], 'rt': 4.2, 'tp': '방파제', 'lat': 34.7906, 'lng': 128.7365, 'mo': [29, 9, 38, 32, 8, 20, 39, 20, 10, 25, 39, 47]},
+  {'id': 'p109', 'nm': '고흥 뜬방파제', 'rg': '전남 경남', 'ds': 0, 'dp': '12–25m', 'sp': ['갈치', '감성돔', '돌돔'], 'rt': 4.9, 'tp': '방파제', 'lat': 34.617, 'lng': 127.2797, 'mo': [21, 43, 7, 26, 37, 19, 50, 46, 44, 40, 1, 38]},
+  {'id': 'p110', 'nm': '통영 방파제', 'rg': '전남 경남', 'ds': 0, 'dp': '11–38m', 'sp': ['문어', '돌돔', '전어'], 'rt': 4.0, 'tp': '방파제', 'lat': 34.8403, 'lng': 128.4166, 'mo': [43, 15, 2, 36, 44, 7, 12, 1, 28, 20, 26, 9]},
+  {'id': 'p111', 'nm': '고흥 해수욕장', 'rg': '전남 경남', 'ds': 0, 'dp': '13–29m', 'sp': ['감성돔', '돌돔', '무늬오징어'], 'rt': 4.5, 'tp': '항구', 'lat': 34.6213, 'lng': 127.2828, 'mo': [13, 35, 20, 42, 30, 33, 24, 20, 11, 29, 34, 21]},
+  {'id': 'p112', 'nm': '욕지도 해수욕장', 'rg': '전남 경남', 'ds': 0, 'dp': '9–23m', 'sp': ['무늬오징어', '전어', '참돔'], 'rt': 3.9, 'tp': '항구', 'lat': 34.6317, 'lng': 128.2557, 'mo': [19, 49, 18, 45, 13, 44, 45, 31, 20, 30, 22, 35]},
+  {'id': 'p113', 'nm': '녹동 해상', 'rg': '전남 경남', 'ds': 0, 'dp': '13–26m', 'sp': ['갑오징어', '돌돔', '갈치'], 'rt': 4.8, 'tp': '선상', 'lat': 34.5297, 'lng': 127.1339, 'mo': [2, 18, 45, 5, 22, 28, 41, 16, 47, 30, 13, 12]},
+  {'id': 'p114', 'nm': '욕지도 선착장', 'rg': '전남 경남', 'ds': 0, 'dp': '15–44m', 'sp': ['볼락', '전어', '감성돔'], 'rt': 4.0, 'tp': '항구', 'lat': 34.628, 'lng': 128.2535, 'mo': [42, 33, 14, 40, 14, 3, 6, 26, 21, 45, 30, 6]},
+  {'id': 'p115', 'nm': '녹동 선착장', 'rg': '전남 경남', 'ds': 0, 'dp': '13–41m', 'sp': ['갈치', '전어', '갑오징어'], 'rt': 4.6, 'tp': '항구', 'lat': 34.5248, 'lng': 127.1394, 'mo': [12, 48, 18, 20, 18, 41, 3, 49, 5, 41, 36, 14]},
+  {'id': 'p116', 'nm': '돌산도 선착장', 'rg': '전남 경남', 'ds': 0, 'dp': '12–37m', 'sp': ['감성돔', '문어', '갈치'], 'rt': 4.4, 'tp': '항구', 'lat': 34.6586, 'lng': 127.7737, 'mo': [31, 11, 47, 18, 2, 0, 19, 36, 38, 6, 21, 18]},
+  {'id': 'p117', 'nm': '매물도 선착장', 'rg': '전남 경남', 'ds': 0, 'dp': '14–40m', 'sp': ['볼락', '참돔', '돌돔'], 'rt': 4.6, 'tp': '항구', 'lat': 34.6452, 'lng': 128.5771, 'mo': [10, 46, 29, 41, 16, 45, 11, 0, 47, 21, 50, 18]},
+  {'id': 'p118', 'nm': '미조항 해수욕장', 'rg': '전남 경남', 'ds': 0, 'dp': '12–41m', 'sp': ['문어', '갑오징어', '감성돔'], 'rt': 4.1, 'tp': '항구', 'lat': 34.7543, 'lng': 128.0611, 'mo': [25, 42, 6, 11, 8, 30, 20, 15, 0, 16, 24, 15]},
+  {'id': 'p119', 'nm': '거제 외항', 'rg': '전남 경남', 'ds': 0, 'dp': '9–36m', 'sp': ['무늬오징어', '갑오징어', '갈치'], 'rt': 3.9, 'tp': '항구', 'lat': 34.8848, 'lng': 128.6229, 'mo': [15, 3, 42, 7, 29, 19, 10, 25, 43, 32, 45, 49]},
+  {'id': 'p120', 'nm': '사량도 앞바다', 'rg': '전남 경남', 'ds': 0, 'dp': '8–34m', 'sp': ['돌돔', '갈치', '참돔'], 'rt': 4.6, 'tp': '항구', 'lat': 34.8192, 'lng': 128.2301, 'mo': [29, 47, 38, 23, 26, 44, 35, 30, 48, 34, 42, 13]},
+  {'id': 'p121', 'nm': '금오도 뜬방파제', 'rg': '전남 경남', 'ds': 0, 'dp': '8–35m', 'sp': ['참돔', '전어', '감성돔'], 'rt': 4.4, 'tp': '방파제', 'lat': 34.5194, 'lng': 127.7562, 'mo': [35, 32, 12, 36, 34, 9, 10, 20, 33, 28, 7, 43]},
+  {'id': 'p122', 'nm': '금오도 뜬방파제', 'rg': '전남 경남', 'ds': 0, 'dp': '8–31m', 'sp': ['돌돔', '문어', '볼락'], 'rt': 3.9, 'tp': '방파제', 'lat': 34.5194, 'lng': 127.7498, 'mo': [36, 3, 35, 29, 43, 19, 46, 1, 25, 16, 0, 47]},
+  {'id': 'p123', 'nm': '장승포 앞바다', 'rg': '전남 경남', 'ds': 0, 'dp': '11–30m', 'sp': ['감성돔', '참돔', '볼락'], 'rt': 4.8, 'tp': '항구', 'lat': 34.9229, 'lng': 128.7985, 'mo': [2, 18, 26, 11, 49, 8, 49, 41, 46, 41, 26, 23]},
+  {'id': 'p124', 'nm': '지세포 해상', 'rg': '전남 경남', 'ds': 0, 'dp': '9–28m', 'sp': ['전어', '돌돔', '갑오징어'], 'rt': 4.5, 'tp': '선상', 'lat': 34.791, 'lng': 128.7457, 'mo': [22, 7, 11, 34, 25, 33, 8, 46, 14, 0, 48, 1]},
+  {'id': 'p125', 'nm': '녹동 해상', 'rg': '전남 경남', 'ds': 0, 'dp': '8–19m', 'sp': ['볼락', '갈치', '돌돔'], 'rt': 3.9, 'tp': '선상', 'lat': 34.526, 'lng': 127.1382, 'mo': [9, 17, 12, 46, 48, 7, 2, 42, 26, 39, 49, 1]},
+  {'id': 'p126', 'nm': '돌산도 수중여', 'rg': '전남 경남', 'ds': 0, 'dp': '8–36m', 'sp': ['감성돔', '볼락', '갑오징어'], 'rt': 4.4, 'tp': '선상', 'lat': 34.6604, 'lng': 127.7723, 'mo': [2, 25, 28, 14, 34, 13, 48, 49, 3, 8, 32, 18]},
+  {'id': 'p127', 'nm': '거제 내항', 'rg': '전남 경남', 'ds': 0, 'dp': '5–21m', 'sp': ['전어', '볼락', '갈치'], 'rt': 4.8, 'tp': '항구', 'lat': 34.882, 'lng': 128.6186, 'mo': [19, 17, 3, 35, 37, 47, 11, 40, 43, 27, 35, 31]},
+  {'id': 'p128', 'nm': '지세포 뜬방파제', 'rg': '전남 경남', 'ds': 0, 'dp': '11–29m', 'sp': ['돌돔', '무늬오징어', '볼락'], 'rt': 4.4, 'tp': '방파제', 'lat': 34.7934, 'lng': 128.7403, 'mo': [11, 48, 34, 30, 15, 14, 19, 45, 9, 29, 3, 35]},
+  {'id': 'p129', 'nm': '남해 해상', 'rg': '전남 경남', 'ds': 0, 'dp': '6–17m', 'sp': ['참돔', '갈치', '문어'], 'rt': 4.7, 'tp': '선상', 'lat': 34.8334, 'lng': 127.89, 'mo': [23, 5, 34, 46, 12, 3, 17, 24, 43, 38, 38, 2]},
+  {'id': 'p130', 'nm': '녹동 내항', 'rg': '전남 경남', 'ds': 0, 'dp': '11–23m', 'sp': ['갑오징어', '무늬오징어', '감성돔'], 'rt': 4.4, 'tp': '항구', 'lat': 34.5255, 'lng': 127.1387, 'mo': [13, 12, 47, 7, 47, 48, 30, 15, 44, 38, 45, 13]},
+  {'id': 'p131', 'nm': '사량도 해상', 'rg': '전남 경남', 'ds': 0, 'dp': '5–28m', 'sp': ['무늬오징어', '전어', '돌돔'], 'rt': 4.8, 'tp': '선상', 'lat': 34.8178, 'lng': 128.2344, 'mo': [32, 31, 29, 6, 46, 30, 48, 20, 13, 23, 20, 26]},
+  {'id': 'p132', 'nm': '남해 방파제', 'rg': '전남 경남', 'ds': 0, 'dp': '12–40m', 'sp': ['문어', '무늬오징어', '참돔'], 'rt': 4.5, 'tp': '방파제', 'lat': 34.8336, 'lng': 127.8973, 'mo': [12, 21, 14, 24, 36, 15, 31, 35, 41, 43, 21, 16]},
+  {'id': 'p133', 'nm': '매물도 수중여', 'rg': '전남 경남', 'ds': 0, 'dp': '5–23m', 'sp': ['돌돔', '전어', '갑오징어'], 'rt': 4.0, 'tp': '선상', 'lat': 34.6384, 'lng': 128.5803, 'mo': [34, 31, 11, 34, 41, 3, 33, 2, 4, 42, 3, 48]},
+  {'id': 'p134', 'nm': '통영 갯바위', 'rg': '전남 경남', 'ds': 0, 'dp': '11–16m', 'sp': ['전어', '갈치', '돌돔'], 'rt': 3.8, 'tp': '갯바위', 'lat': 34.8416, 'lng': 128.415, 'mo': [3, 39, 40, 42, 39, 30, 42, 31, 1, 0, 34, 35]},
+  {'id': 'p135', 'nm': '욕지도 뜬방파제', 'rg': '전남 경남', 'ds': 0, 'dp': '6–22m', 'sp': ['문어', '돌돔', '감성돔'], 'rt': 4.9, 'tp': '방파제', 'lat': 34.6367, 'lng': 128.2463, 'mo': [6, 33, 9, 15, 12, 39, 33, 16, 22, 17, 50, 25]},
+  {'id': 'p136', 'nm': '구조라 해수욕장', 'rg': '전남 경남', 'ds': 0, 'dp': '7–14m', 'sp': ['무늬오징어', '참돔', '갑오징어'], 'rt': 4.3, 'tp': '항구', 'lat': 34.8053, 'lng': 128.6999, 'mo': [41, 48, 2, 5, 25, 24, 24, 35, 30, 3, 40, 0]},
+  {'id': 'p137', 'nm': '장승포 앞바다', 'rg': '전남 경남', 'ds': 0, 'dp': '5–15m', 'sp': ['참돔', '감성돔', '전어'], 'rt': 4.8, 'tp': '항구', 'lat': 34.9216, 'lng': 128.8017, 'mo': [13, 44, 36, 30, 17, 2, 4, 43, 17, 34, 36, 42]},
+  {'id': 'p138', 'nm': '거제 방파제', 'rg': '전남 경남', 'ds': 0, 'dp': '6–27m', 'sp': ['문어', '참돔', '돌돔'], 'rt': 4.6, 'tp': '방파제', 'lat': 34.8886, 'lng': 128.6231, 'mo': [10, 36, 15, 36, 24, 43, 34, 21, 24, 48, 47, 8]},
+  {'id': 'p139', 'nm': '해금강 방파제', 'rg': '전남 경남', 'ds': 0, 'dp': '8–24m', 'sp': ['참돔', '갑오징어', '무늬오징어'], 'rt': 4.4, 'tp': '방파제', 'lat': 34.7287, 'lng': 128.6813, 'mo': [49, 39, 38, 25, 49, 20, 1, 40, 17, 50, 28, 31]},
+  {'id': 'p140', 'nm': '지세포 해상', 'rg': '전남 경남', 'ds': 0, 'dp': '7–35m', 'sp': ['문어', '참돔', '전어'], 'rt': 4.2, 'tp': '선상', 'lat': 34.7921, 'lng': 128.742, 'mo': [39, 18, 15, 45, 4, 5, 17, 9, 24, 45, 50, 40]},
+  {'id': 'p141', 'nm': '주전 갯바위', 'rg': '부산 울산', 'ds': 0, 'dp': '5–12m', 'sp': ['무늬오징어', '부시리', '임연수'], 'rt': 4.2, 'tp': '갯바위', 'lat': 35.545, 'lng': 129.4485, 'mo': [17, 6, 8, 5, 11, 27, 28, 35, 35, 32, 26, 6]},
+  {'id': 'p142', 'nm': '태종대 해수욕장', 'rg': '부산 울산', 'ds': 0, 'dp': '7–16m', 'sp': ['임연수', '가자미', '도다리'], 'rt': 4.1, 'tp': '항구', 'lat': 35.0595, 'lng': 129.0859, 'mo': [26, 24, 49, 5, 46, 35, 15, 36, 33, 10, 43, 24]},
+  {'id': 'p143', 'nm': '일광 수중여', 'rg': '부산 울산', 'ds': 0, 'dp': '12–20m', 'sp': ['방어', '임연수', '도다리'], 'rt': 3.9, 'tp': '선상', 'lat': 35.3006, 'lng': 129.2339, 'mo': [30, 50, 4, 23, 16, 15, 46, 40, 31, 38, 39, 12]},
+  {'id': 'p144', 'nm': '가덕도 해상', 'rg': '부산 울산', 'ds': 0, 'dp': '11–26m', 'sp': ['부시리', '무늬오징어', '도다리'], 'rt': 4.1, 'tp': '선상', 'lat': 35.0007, 'lng': 128.8359, 'mo': [27, 41, 38, 8, 19, 20, 38, 44, 12, 30, 20, 11]},
+  {'id': 'p145', 'nm': '구룡포 해수욕장', 'rg': '부산 울산', 'ds': 0, 'dp': '8–27m', 'sp': ['방어', '임연수', '도다리'], 'rt': 4.7, 'tp': '항구', 'lat': 35.99, 'lng': 129.5539, 'mo': [7, 36, 12, 37, 34, 11, 43, 49, 35, 1, 46, 29]},
+  {'id': 'p146', 'nm': '태종대 해상', 'rg': '부산 울산', 'ds': 0, 'dp': '13–34m', 'sp': ['방어', '노래미', '도다리'], 'rt': 4.8, 'tp': '선상', 'lat': 35.0602, 'lng': 129.0841, 'mo': [42, 9, 45, 27, 50, 24, 4, 28, 38, 30, 37, 25]},
+  {'id': 'p147', 'nm': '경주 감포 뜬방파제', 'rg': '부산 울산', 'ds': 0, 'dp': '15–32m', 'sp': ['고등어', '대구', '가자미'], 'rt': 4.9, 'tp': '방파제', 'lat': 35.7996, 'lng': 129.5073, 'mo': [49, 15, 42, 42, 22, 10, 41, 39, 2, 36, 41, 43]},
+  {'id': 'p148', 'nm': '간절곶 해상', 'rg': '부산 울산', 'ds': 0, 'dp': '6–20m', 'sp': ['노래미', '고등어', '무늬오징어'], 'rt': 4.3, 'tp': '선상', 'lat': 35.3553, 'lng': 129.3578, 'mo': [23, 25, 29, 49, 43, 37, 44, 32, 9, 22, 1, 30]},
+  {'id': 'p149', 'nm': '태종대 갯바위', 'rg': '부산 울산', 'ds': 0, 'dp': '10–17m', 'sp': ['부시리', '방어', '도다리'], 'rt': 4.1, 'tp': '갯바위', 'lat': 35.0618, 'lng': 129.09, 'mo': [29, 50, 13, 33, 30, 22, 30, 6, 28, 46, 44, 28]},
+  {'id': 'p150', 'nm': '송도 방파제', 'rg': '부산 울산', 'ds': 0, 'dp': '15–41m', 'sp': ['도다리', '노래미', '방어'], 'rt': 4.3, 'tp': '방파제', 'lat': 35.079, 'lng': 129.0188, 'mo': [11, 35, 10, 21, 35, 27, 29, 14, 25, 40, 11, 11]},
+  {'id': 'p151', 'nm': '가덕도 해수욕장', 'rg': '부산 울산', 'ds': 0, 'dp': '10–25m', 'sp': ['임연수', '고등어', '가자미'], 'rt': 4.0, 'tp': '항구', 'lat': 35.0062, 'lng': 128.8342, 'mo': [45, 13, 13, 17, 48, 45, 50, 4, 36, 6, 34, 11]},
+  {'id': 'p152', 'nm': '송도 외항', 'rg': '부산 울산', 'ds': 0, 'dp': '14–21m', 'sp': ['부시리', '임연수', '방어'], 'rt': 4.5, 'tp': '항구', 'lat': 35.0772, 'lng': 129.0172, 'mo': [25, 37, 7, 22, 22, 29, 39, 11, 43, 45, 19, 39]},
+  {'id': 'p153', 'nm': '간절곶 갯바위', 'rg': '부산 울산', 'ds': 0, 'dp': '15–25m', 'sp': ['부시리', '도다리', '방어'], 'rt': 4.4, 'tp': '갯바위', 'lat': 35.3566, 'lng': 129.358, 'mo': [24, 26, 38, 8, 36, 24, 27, 11, 31, 40, 34, 44]},
+  {'id': 'p154', 'nm': '구룡포 외항', 'rg': '부산 울산', 'ds': 0, 'dp': '12–30m', 'sp': ['무늬오징어', '가자미', '임연수'], 'rt': 4.6, 'tp': '항구', 'lat': 35.9836, 'lng': 129.5537, 'mo': [22, 0, 31, 8, 12, 24, 35, 32, 41, 31, 26, 43]},
+  {'id': 'p155', 'nm': '포항 수중여', 'rg': '부산 울산', 'ds': 0, 'dp': '13–34m', 'sp': ['노래미', '방어', '가자미'], 'rt': 3.9, 'tp': '선상', 'lat': 36.0487, 'lng': 129.3783, 'mo': [17, 14, 34, 18, 10, 49, 29, 36, 47, 49, 49, 31]},
+  {'id': 'p156', 'nm': '송도 외항', 'rg': '부산 울산', 'ds': 0, 'dp': '12–25m', 'sp': ['부시리', '가자미', '임연수'], 'rt': 4.2, 'tp': '항구', 'lat': 35.0783, 'lng': 129.0205, 'mo': [46, 28, 34, 13, 27, 6, 47, 41, 48, 15, 19, 2]},
+  {'id': 'p157', 'nm': '태종대 수중여', 'rg': '부산 울산', 'ds': 0, 'dp': '8–19m', 'sp': ['노래미', '고등어', '임연수'], 'rt': 4.7, 'tp': '선상', 'lat': 35.0622, 'lng': 129.0839, 'mo': [47, 37, 44, 22, 45, 39, 40, 27, 10, 39, 8, 50]},
+  {'id': 'p158', 'nm': '칠포 앞바다', 'rg': '부산 울산', 'ds': 0, 'dp': '9–34m', 'sp': ['도다리', '부시리', '무늬오징어'], 'rt': 3.9, 'tp': '항구', 'lat': 36.1314, 'lng': 129.3983, 'mo': [18, 18, 36, 17, 32, 43, 6, 8, 48, 50, 26, 3]},
+  {'id': 'p159', 'nm': '해운대 내항', 'rg': '부산 울산', 'ds': 0, 'dp': '6–23m', 'sp': ['노래미', '임연수', '고등어'], 'rt': 4.4, 'tp': '항구', 'lat': 35.1603, 'lng': 129.1569, 'mo': [9, 36, 40, 17, 40, 26, 24, 28, 4, 40, 50, 49]},
+  {'id': 'p160', 'nm': '일광 앞바다', 'rg': '부산 울산', 'ds': 0, 'dp': '12–25m', 'sp': ['가자미', '대구', '부시리'], 'rt': 4.2, 'tp': '항구', 'lat': 35.3036, 'lng': 129.2371, 'mo': [29, 40, 42, 44, 22, 4, 50, 34, 25, 13, 27, 13]},
+  {'id': 'p161', 'nm': '울산 방어진 앞바다', 'rg': '부산 울산', 'ds': 0, 'dp': '5–23m', 'sp': ['무늬오징어', '부시리', '고등어'], 'rt': 4.0, 'tp': '항구', 'lat': 35.4846, 'lng': 129.4268, 'mo': [48, 3, 2, 6, 40, 50, 29, 1, 7, 10, 28, 29]},
+  {'id': 'p162', 'nm': '해운대 외항', 'rg': '부산 울산', 'ds': 0, 'dp': '8–26m', 'sp': ['방어', '대구', '부시리'], 'rt': 4.5, 'tp': '항구', 'lat': 35.1604, 'lng': 129.163, 'mo': [23, 16, 5, 23, 42, 41, 10, 3, 25, 40, 19, 46]},
+  {'id': 'p163', 'nm': '송도 방파제', 'rg': '부산 울산', 'ds': 0, 'dp': '6–14m', 'sp': ['노래미', '무늬오징어', '가자미'], 'rt': 4.1, 'tp': '방파제', 'lat': 35.0726, 'lng': 129.0131, 'mo': [0, 44, 21, 7, 27, 44, 8, 30, 4, 14, 24, 5]},
+  {'id': 'p164', 'nm': '울산 방어진 선착장', 'rg': '부산 울산', 'ds': 0, 'dp': '7–25m', 'sp': ['도다리', '고등어', '가자미'], 'rt': 4.5, 'tp': '항구', 'lat': 35.4829, 'lng': 129.4336, 'mo': [33, 36, 0, 39, 41, 10, 28, 22, 46, 13, 40, 47]},
+  {'id': 'p165', 'nm': '포항 내항', 'rg': '부산 울산', 'ds': 0, 'dp': '14–28m', 'sp': ['대구', '임연수', '도다리'], 'rt': 4.7, 'tp': '항구', 'lat': 36.0479, 'lng': 129.3736, 'mo': [27, 20, 50, 8, 15, 17, 41, 5, 15, 35, 38, 38]},
+  {'id': 'p166', 'nm': '가덕도 외항', 'rg': '부산 울산', 'ds': 0, 'dp': '6–27m', 'sp': ['노래미', '임연수', '도다리'], 'rt': 4.8, 'tp': '항구', 'lat': 34.9995, 'lng': 128.8358, 'mo': [41, 3, 50, 50, 15, 31, 24, 7, 15, 31, 40, 38]},
+  {'id': 'p167', 'nm': '가덕도 앞바다', 'rg': '부산 울산', 'ds': 0, 'dp': '5–11m', 'sp': ['임연수', '부시리', '방어'], 'rt': 4.8, 'tp': '항구', 'lat': 35.0067, 'lng': 128.831, 'mo': [43, 11, 48, 30, 49, 4, 1, 37, 4, 0, 16, 13]},
+  {'id': 'p168', 'nm': '정자항 뜬방파제', 'rg': '부산 울산', 'ds': 0, 'dp': '8–38m', 'sp': ['임연수', '고등어', '부시리'], 'rt': 4.0, 'tp': '방파제', 'lat': 35.6145, 'lng': 129.4543, 'mo': [25, 5, 40, 34, 34, 39, 9, 17, 5, 19, 5, 32]},
+  {'id': 'p169', 'nm': '간절곶 해상', 'rg': '부산 울산', 'ds': 0, 'dp': '9–35m', 'sp': ['대구', '방어', '부시리'], 'rt': 4.6, 'tp': '선상', 'lat': 35.3601, 'lng': 129.3644, 'mo': [27, 46, 15, 3, 15, 5, 27, 7, 29, 39, 38, 3]},
+  {'id': 'p170', 'nm': '청사포 갯바위', 'rg': '부산 울산', 'ds': 0, 'dp': '6–35m', 'sp': ['가자미', '도다리', '노래미'], 'rt': 4.8, 'tp': '갯바위', 'lat': 35.1564, 'lng': 129.1878, 'mo': [22, 33, 33, 50, 46, 16, 10, 23, 8, 47, 49, 17]},
+  {'id': 'p171', 'nm': '간절곶 해상', 'rg': '부산 울산', 'ds': 0, 'dp': '15–43m', 'sp': ['대구', '무늬오징어', '노래미'], 'rt': 3.9, 'tp': '선상', 'lat': 35.3569, 'lng': 129.3574, 'mo': [32, 23, 3, 31, 36, 10, 23, 10, 16, 49, 6, 36]},
+  {'id': 'p172', 'nm': '호미곶 방파제', 'rg': '부산 울산', 'ds': 0, 'dp': '8–26m', 'sp': ['노래미', '가자미', '고등어'], 'rt': 4.8, 'tp': '방파제', 'lat': 36.0714, 'lng': 129.5696, 'mo': [23, 24, 9, 11, 2, 35, 45, 47, 41, 26, 14, 20]},
+  {'id': 'p173', 'nm': '간절곶 외항', 'rg': '부산 울산', 'ds': 0, 'dp': '12–17m', 'sp': ['대구', '가자미', '고등어'], 'rt': 4.2, 'tp': '항구', 'lat': 35.3625, 'lng': 129.3625, 'mo': [14, 33, 2, 25, 4, 29, 18, 49, 19, 20, 5, 35]},
+  {'id': 'p174', 'nm': '울산 방어진 해수욕장', 'rg': '부산 울산', 'ds': 0, 'dp': '11–16m', 'sp': ['노래미', '무늬오징어', '도다리'], 'rt': 4.1, 'tp': '항구', 'lat': 35.4869, 'lng': 129.4329, 'mo': [37, 31, 49, 49, 12, 46, 34, 48, 50, 15, 9, 0]},
+  {'id': 'p175', 'nm': '주전 방파제', 'rg': '부산 울산', 'ds': 0, 'dp': '13–31m', 'sp': ['임연수', '방어', '가자미'], 'rt': 4.6, 'tp': '방파제', 'lat': 35.5536, 'lng': 129.4391, 'mo': [13, 33, 15, 26, 31, 3, 9, 45, 17, 5, 2, 14]},
+  {'id': 'p176', 'nm': '안목 수중여', 'rg': '강원', 'ds': 0, 'dp': '11–38m', 'sp': ['대구', '도다리', '부시리'], 'rt': 4.7, 'tp': '선상', 'lat': 37.7783, 'lng': 128.9412, 'mo': [25, 4, 37, 36, 3, 27, 42, 8, 15, 18, 16, 20]},
+  {'id': 'p177', 'nm': '정동진 앞바다', 'rg': '강원', 'ds': 0, 'dp': '10–39m', 'sp': ['노래미', '도다리', '임연수'], 'rt': 4.0, 'tp': '항구', 'lat': 37.6913, 'lng': 129.0298, 'mo': [49, 37, 6, 9, 6, 10, 28, 29, 20, 26, 7, 34]},
+  {'id': 'p178', 'nm': '강릉 수중여', 'rg': '강원', 'ds': 0, 'dp': '13–19m', 'sp': ['도다리', '방어', '임연수'], 'rt': 4.5, 'tp': '선상', 'lat': 37.7699, 'lng': 128.9473, 'mo': [45, 44, 38, 2, 13, 20, 9, 5, 45, 15, 22, 25]},
+  {'id': 'p179', 'nm': '망상 선착장', 'rg': '강원', 'ds': 0, 'dp': '10–36m', 'sp': ['무늬오징어', '노래미', '가자미'], 'rt': 4.5, 'tp': '항구', 'lat': 37.5876, 'lng': 129.088, 'mo': [29, 6, 50, 8, 7, 0, 3, 49, 14, 8, 12, 25]},
+  {'id': 'p180', 'nm': '거진항 갯바위', 'rg': '강원', 'ds': 0, 'dp': '11–39m', 'sp': ['대구', '가자미', '무늬오징어'], 'rt': 4.2, 'tp': '갯바위', 'lat': 38.4474, 'lng': 128.4536, 'mo': [12, 41, 28, 8, 5, 21, 7, 2, 29, 3, 10, 36]},
+  {'id': 'p181', 'nm': '영덕 강구항 해상', 'rg': '강원', 'ds': 0, 'dp': '13–33m', 'sp': ['노래미', '도다리', '무늬오징어'], 'rt': 3.9, 'tp': '선상', 'lat': 36.3958, 'lng': 129.3628, 'mo': [17, 28, 9, 2, 39, 39, 39, 15, 41, 18, 31, 26]},
+  {'id': 'p182', 'nm': '망상 해상', 'rg': '강원', 'ds': 0, 'dp': '14–35m', 'sp': ['고등어', '노래미', '부시리'], 'rt': 4.2, 'tp': '선상', 'lat': 37.5887, 'lng': 129.086, 'mo': [34, 50, 1, 24, 50, 45, 22, 30, 34, 50, 31, 22]},
+  {'id': 'p183', 'nm': '망상 선착장', 'rg': '강원', 'ds': 0, 'dp': '13–43m', 'sp': ['가자미', '방어', '고등어'], 'rt': 4.8, 'tp': '항구', 'lat': 37.5876, 'lng': 129.09, 'mo': [30, 33, 22, 49, 37, 14, 10, 6, 15, 42, 15, 17]},
+  {'id': 'p184', 'nm': '축산항 내항', 'rg': '강원', 'ds': 0, 'dp': '10–33m', 'sp': ['임연수', '부시리', '고등어'], 'rt': 4.4, 'tp': '항구', 'lat': 36.5098, 'lng': 129.4516, 'mo': [11, 11, 15, 37, 20, 47, 44, 22, 37, 1, 45, 44]},
+  {'id': 'p185', 'nm': '동명항 내항', 'rg': '강원', 'ds': 0, 'dp': '14–25m', 'sp': ['무늬오징어', '방어', '대구'], 'rt': 4.7, 'tp': '항구', 'lat': 38.2465, 'lng': 128.5842, 'mo': [31, 2, 5, 3, 14, 38, 14, 1, 33, 30, 0, 21]},
+  {'id': 'p186', 'nm': '정동진 선착장', 'rg': '강원', 'ds': 0, 'dp': '11–34m', 'sp': ['부시리', '가자미', '무늬오징어'], 'rt': 3.9, 'tp': '항구', 'lat': 37.696, 'lng': 129.0359, 'mo': [9, 37, 45, 9, 49, 7, 33, 23, 4, 23, 45, 42]},
+  {'id': 'p187', 'nm': '강릉 앞바다', 'rg': '강원', 'ds': 0, 'dp': '11–25m', 'sp': ['임연수', '무늬오징어', '부시리'], 'rt': 4.6, 'tp': '항구', 'lat': 37.7686, 'lng': 128.9477, 'mo': [20, 11, 45, 35, 44, 39, 50, 22, 14, 42, 37, 11]},
+  {'id': 'p188', 'nm': '강릉 선착장', 'rg': '강원', 'ds': 0, 'dp': '8–24m', 'sp': ['임연수', '가자미', '대구'], 'rt': 4.9, 'tp': '항구', 'lat': 37.769, 'lng': 128.9461, 'mo': [38, 20, 39, 14, 40, 36, 6, 31, 9, 21, 47, 4]},
+  {'id': 'p189', 'nm': '임원항 갯바위', 'rg': '강원', 'ds': 0, 'dp': '11–30m', 'sp': ['부시리', '무늬오징어', '가자미'], 'rt': 4.6, 'tp': '갯바위', 'lat': 37.2328, 'lng': 129.344, 'mo': [16, 13, 15, 44, 4, 22, 16, 50, 6, 46, 0, 3]},
+  {'id': 'p190', 'nm': '임원항 해상', 'rg': '강원', 'ds': 0, 'dp': '5–20m', 'sp': ['고등어', '임연수', '가자미'], 'rt': 4.1, 'tp': '선상', 'lat': 37.2295, 'lng': 129.3411, 'mo': [30, 50, 36, 41, 48, 43, 14, 10, 28, 4, 2, 18]},
+  {'id': 'p191', 'nm': '죽변항 갯바위', 'rg': '강원', 'ds': 0, 'dp': '7–13m', 'sp': ['도다리', '대구', '방어'], 'rt': 3.9, 'tp': '갯바위', 'lat': 37.0525, 'lng': 129.423, 'mo': [5, 21, 38, 39, 30, 45, 1, 27, 41, 10, 38, 27]},
+  {'id': 'p192', 'nm': '장호항 내항', 'rg': '강원', 'ds': 0, 'dp': '5–23m', 'sp': ['고등어', '방어', '부시리'], 'rt': 3.9, 'tp': '항구', 'lat': 37.2875, 'lng': 129.3165, 'mo': [18, 19, 15, 6, 3, 25, 36, 35, 31, 9, 3, 23]},
+  {'id': 'p193', 'nm': '대진항 해수욕장', 'rg': '강원', 'ds': 0, 'dp': '15–37m', 'sp': ['노래미', '도다리', '부시리'], 'rt': 4.2, 'tp': '항구', 'lat': 38.4932, 'lng': 128.4247, 'mo': [18, 5, 30, 7, 19, 50, 25, 30, 31, 42, 16, 5]},
+  {'id': 'p194', 'nm': '안목 해상', 'rg': '강원', 'ds': 0, 'dp': '10–40m', 'sp': ['방어', '무늬오징어', '노래미'], 'rt': 4.4, 'tp': '선상', 'lat': 37.7723, 'lng': 128.9449, 'mo': [16, 14, 17, 36, 3, 9, 48, 44, 42, 6, 5, 42]},
+  {'id': 'p195', 'nm': '동명항 내항', 'rg': '강원', 'ds': 0, 'dp': '13–43m', 'sp': ['고등어', '임연수', '방어'], 'rt': 4.4, 'tp': '항구', 'lat': 38.2436, 'lng': 128.5845, 'mo': [43, 30, 36, 15, 30, 19, 5, 25, 45, 2, 32, 36]},
+  {'id': 'p196', 'nm': '고성 선착장', 'rg': '강원', 'ds': 0, 'dp': '10–38m', 'sp': ['도다리', '고등어', '대구'], 'rt': 4.8, 'tp': '항구', 'lat': 38.3762, 'lng': 128.4687, 'mo': [12, 8, 2, 27, 5, 43, 27, 12, 40, 9, 38, 16]},
+  {'id': 'p197', 'nm': '후포항 갯바위', 'rg': '강원', 'ds': 0, 'dp': '7–30m', 'sp': ['부시리', '방어', '무늬오징어'], 'rt': 4.4, 'tp': '갯바위', 'lat': 36.67, 'lng': 129.4671, 'mo': [29, 0, 50, 44, 39, 37, 33, 50, 26, 7, 26, 9]},
+  {'id': 'p198', 'nm': '죽변항 갯바위', 'rg': '강원', 'ds': 0, 'dp': '14–38m', 'sp': ['방어', '부시리', '노래미'], 'rt': 4.5, 'tp': '갯바위', 'lat': 37.0547, 'lng': 129.4151, 'mo': [16, 24, 41, 31, 36, 38, 30, 2, 11, 17, 25, 9]},
+  {'id': 'p199', 'nm': '주문진 방파제', 'rg': '강원', 'ds': 0, 'dp': '6–18m', 'sp': ['노래미', '가자미', '부시리'], 'rt': 3.9, 'tp': '방파제', 'lat': 37.8909, 'lng': 128.8339, 'mo': [30, 17, 23, 1, 21, 50, 19, 19, 17, 31, 44, 43]},
+  {'id': 'p200', 'nm': '수산항 앞바다', 'rg': '강원', 'ds': 0, 'dp': '9–36m', 'sp': ['대구', '노래미', '무늬오징어'], 'rt': 4.4, 'tp': '항구', 'lat': 38.1478, 'lng': 128.6043, 'mo': [13, 26, 47, 31, 48, 33, 23, 3, 32, 50, 10, 4]},
+  {'id': 'p201', 'nm': '삼척 뜬방파제', 'rg': '강원', 'ds': 0, 'dp': '11–36m', 'sp': ['노래미', '고등어', '임연수'], 'rt': 4.8, 'tp': '방파제', 'lat': 37.4397, 'lng': 129.187, 'mo': [3, 15, 2, 29, 3, 23, 45, 12, 17, 23, 29, 32]},
+  {'id': 'p202', 'nm': '대진항 방파제', 'rg': '강원', 'ds': 0, 'dp': '11–17m', 'sp': ['무늬오징어', '도다리', '임연수'], 'rt': 4.0, 'tp': '방파제', 'lat': 38.4908, 'lng': 128.4286, 'mo': [30, 37, 35, 22, 22, 10, 16, 47, 44, 5, 18, 1]},
+  {'id': 'p203', 'nm': '동명항 내항', 'rg': '강원', 'ds': 0, 'dp': '5–17m', 'sp': ['노래미', '방어', '부시리'], 'rt': 4.1, 'tp': '항구', 'lat': 38.2467, 'lng': 128.5826, 'mo': [26, 32, 1, 49, 49, 43, 0, 30, 8, 41, 11, 38]},
+  {'id': 'p204', 'nm': '강릉 외항', 'rg': '강원', 'ds': 0, 'dp': '10–32m', 'sp': ['부시리', '무늬오징어', '도다리'], 'rt': 4.5, 'tp': '항구', 'lat': 37.7714, 'lng': 128.9499, 'mo': [13, 29, 19, 43, 33, 39, 25, 37, 6, 0, 32, 42]},
+  {'id': 'p205', 'nm': '고성 외항', 'rg': '강원', 'ds': 0, 'dp': '8–14m', 'sp': ['대구', '부시리', '도다리'], 'rt': 4.7, 'tp': '항구', 'lat': 38.378, 'lng': 128.4622, 'mo': [40, 20, 17, 16, 41, 45, 41, 19, 12, 9, 33, 48]},
+  {'id': 'p206', 'nm': '고성 해상', 'rg': '강원', 'ds': 0, 'dp': '8–34m', 'sp': ['가자미', '무늬오징어', '도다리'], 'rt': 4.4, 'tp': '선상', 'lat': 38.3816, 'lng': 128.4679, 'mo': [16, 26, 25, 24, 47, 2, 37, 45, 36, 12, 21, 46]},
+  {'id': 'p207', 'nm': '남애항 앞바다', 'rg': '강원', 'ds': 0, 'dp': '6–18m', 'sp': ['고등어', '도다리', '무늬오징어'], 'rt': 4.2, 'tp': '항구', 'lat': 37.9451, 'lng': 128.7844, 'mo': [6, 30, 8, 47, 16, 46, 35, 48, 11, 43, 21, 41]},
+  {'id': 'p208', 'nm': '강릉 해상', 'rg': '강원', 'ds': 0, 'dp': '15–32m', 'sp': ['방어', '고등어', '노래미'], 'rt': 4.4, 'tp': '선상', 'lat': 37.7751, 'lng': 128.9494, 'mo': [7, 30, 3, 40, 37, 37, 39, 4, 30, 12, 32, 7]},
+  {'id': 'p209', 'nm': '양양 방파제', 'rg': '강원', 'ds': 0, 'dp': '10–35m', 'sp': ['노래미', '부시리', '고등어'], 'rt': 3.9, 'tp': '방파제', 'lat': 38.0828, 'lng': 128.6156, 'mo': [36, 29, 9, 20, 45, 11, 49, 5, 31, 21, 40, 11]},
+  {'id': 'p210', 'nm': '수산항 외항', 'rg': '강원', 'ds': 0, 'dp': '5–11m', 'sp': ['도다리', '무늬오징어', '임연수'], 'rt': 4.4, 'tp': '항구', 'lat': 38.1472, 'lng': 128.6078, 'mo': [48, 49, 5, 8, 39, 27, 40, 27, 25, 27, 30, 24]},
+  {'id': 'p211', 'nm': '범섬 방파제', 'rg': '제주도', 'ds': 0, 'dp': '13–36m', 'sp': ['갈치', '무늬오징어', '벵에돔'], 'rt': 4.1, 'tp': '방파제', 'lat': 33.222, 'lng': 126.5192, 'mo': [43, 0, 40, 46, 15, 14, 44, 22, 19, 8, 6, 24]},
+  {'id': 'p212', 'nm': '애월 방파제', 'rg': '제주도', 'ds': 0, 'dp': '7–18m', 'sp': ['갈치', '방어', '무늬오징어'], 'rt': 4.6, 'tp': '방파제', 'lat': 33.4661, 'lng': 126.3237, 'mo': [43, 8, 21, 31, 22, 48, 12, 10, 25, 1, 14, 14]},
+  {'id': 'p213', 'nm': '우도 뜬방파제', 'rg': '제주도', 'ds': 0, 'dp': '6–24m', 'sp': ['벵에돔', '다금바리', '방어'], 'rt': 4.3, 'tp': '방파제', 'lat': 33.504, 'lng': 126.9537, 'mo': [16, 49, 34, 39, 3, 38, 3, 42, 6, 41, 1, 3]},
+  {'id': 'p214', 'nm': '한림 뜬방파제', 'rg': '제주도', 'ds': 0, 'dp': '13–41m', 'sp': ['무늬오징어', '벵에돔', '참돔'], 'rt': 4.5, 'tp': '방파제', 'lat': 33.4136, 'lng': 126.2692, 'mo': [26, 42, 6, 42, 33, 17, 39, 38, 44, 8, 26, 6]},
+  {'id': 'p215', 'nm': '가파도 갯바위', 'rg': '제주도', 'ds': 0, 'dp': '12–27m', 'sp': ['무늬오징어', '한치', '다금바리'], 'rt': 4.1, 'tp': '갯바위', 'lat': 33.1729, 'lng': 126.2716, 'mo': [33, 12, 22, 45, 26, 18, 10, 2, 35, 31, 13, 44]},
+  {'id': 'p216', 'nm': '제주항 갯바위', 'rg': '제주도', 'ds': 0, 'dp': '12–18m', 'sp': ['볼락', '참돔', '벵에돔'], 'rt': 3.9, 'tp': '갯바위', 'lat': 33.5286, 'lng': 126.5483, 'mo': [49, 32, 4, 46, 46, 6, 16, 41, 14, 29, 18, 16]},
+  {'id': 'p217', 'nm': '고산 방파제', 'rg': '제주도', 'ds': 0, 'dp': '14–27m', 'sp': ['방어', '다금바리', '갈치'], 'rt': 4.8, 'tp': '방파제', 'lat': 33.2997, 'lng': 126.1608, 'mo': [7, 6, 48, 2, 0, 8, 42, 41, 10, 21, 22, 28]},
+  {'id': 'p218', 'nm': '애월 앞바다', 'rg': '제주도', 'ds': 0, 'dp': '7–15m', 'sp': ['다금바리', '갈치', '무늬오징어'], 'rt': 4.3, 'tp': '항구', 'lat': 33.4712, 'lng': 126.3226, 'mo': [17, 24, 44, 30, 26, 41, 10, 7, 8, 44, 46, 3]},
+  {'id': 'p219', 'nm': '우도 수중여', 'rg': '제주도', 'ds': 0, 'dp': '6–19m', 'sp': ['참돔', '다금바리', '볼락'], 'rt': 4.5, 'tp': '선상', 'lat': 33.5103, 'lng': 126.9568, 'mo': [22, 39, 1, 43, 46, 8, 30, 31, 7, 26, 28, 2]},
+  {'id': 'p220', 'nm': '제주항 뜬방파제', 'rg': '제주도', 'ds': 0, 'dp': '15–40m', 'sp': ['무늬오징어', '방어', '한치'], 'rt': 4.2, 'tp': '방파제', 'lat': 33.5272, 'lng': 126.5457, 'mo': [33, 44, 44, 39, 6, 27, 42, 46, 15, 30, 22, 42]},
+  {'id': 'p221', 'nm': '성산 해수욕장', 'rg': '제주도', 'ds': 0, 'dp': '13–38m', 'sp': ['참돔', '볼락', '다금바리'], 'rt': 4.2, 'tp': '항구', 'lat': 33.4659, 'lng': 126.9313, 'mo': [31, 10, 4, 48, 31, 20, 15, 21, 17, 3, 32, 14]},
+  {'id': 'p222', 'nm': '모슬포 갯바위', 'rg': '제주도', 'ds': 0, 'dp': '13–35m', 'sp': ['볼락', '돌돔', '다금바리'], 'rt': 3.8, 'tp': '갯바위', 'lat': 33.216, 'lng': 126.2533, 'mo': [31, 28, 20, 7, 31, 47, 41, 1, 6, 25, 26, 2]},
+  {'id': 'p223', 'nm': '애월 해수욕장', 'rg': '제주도', 'ds': 0, 'dp': '12–39m', 'sp': ['갈치', '무늬오징어', '방어'], 'rt': 4.5, 'tp': '항구', 'lat': 33.4727, 'lng': 126.3272, 'mo': [42, 29, 21, 23, 3, 14, 29, 21, 35, 49, 39, 38]},
+  {'id': 'p224', 'nm': '위미 갯바위', 'rg': '제주도', 'ds': 0, 'dp': '11–19m', 'sp': ['벵에돔', '방어', '참돔'], 'rt': 4.1, 'tp': '갯바위', 'lat': 33.2686, 'lng': 126.6619, 'mo': [40, 18, 35, 33, 23, 44, 6, 2, 10, 31, 8, 45]},
+  {'id': 'p225', 'nm': '차귀도 내항', 'rg': '제주도', 'ds': 0, 'dp': '12–31m', 'sp': ['무늬오징어', '볼락', '다금바리'], 'rt': 4.5, 'tp': '항구', 'lat': 33.3074, 'lng': 126.1508, 'mo': [50, 12, 45, 21, 6, 48, 26, 2, 40, 43, 37, 7]},
+  {'id': 'p226', 'nm': '표선 선착장', 'rg': '제주도', 'ds': 0, 'dp': '15–39m', 'sp': ['벵에돔', '다금바리', '볼락'], 'rt': 4.5, 'tp': '항구', 'lat': 33.3277, 'lng': 126.8361, 'mo': [37, 30, 32, 49, 11, 44, 37, 11, 46, 8, 6, 24]},
+  {'id': 'p227', 'nm': '서귀포 뜬방파제', 'rg': '제주도', 'ds': 0, 'dp': '13–28m', 'sp': ['무늬오징어', '한치', '갈치'], 'rt': 4.6, 'tp': '방파제', 'lat': 33.2436, 'lng': 126.5631, 'mo': [21, 18, 28, 8, 8, 26, 38, 44, 47, 32, 19, 44]},
+  {'id': 'p228', 'nm': '성산 내항', 'rg': '제주도', 'ds': 0, 'dp': '10–32m', 'sp': ['한치', '방어', '볼락'], 'rt': 4.3, 'tp': '항구', 'lat': 33.4674, 'lng': 126.9311, 'mo': [8, 45, 41, 11, 32, 34, 44, 40, 20, 45, 7, 48]},
+  {'id': 'p229', 'nm': '우도 해상', 'rg': '제주도', 'ds': 0, 'dp': '7–21m', 'sp': ['갈치', '한치', '다금바리'], 'rt': 4.6, 'tp': '선상', 'lat': 33.509, 'lng': 126.9589, 'mo': [27, 0, 33, 6, 1, 24, 9, 3, 42, 3, 12, 17]},
+  {'id': 'p230', 'nm': '비양도 방파제', 'rg': '제주도', 'ds': 0, 'dp': '13–43m', 'sp': ['갈치', '벵에돔', '참돔'], 'rt': 4.7, 'tp': '방파제', 'lat': 33.4102, 'lng': 126.2255, 'mo': [28, 6, 39, 43, 47, 35, 14, 47, 41, 35, 24, 15]},
+  {'id': 'p231', 'nm': '가파도 방파제', 'rg': '제주도', 'ds': 0, 'dp': '14–36m', 'sp': ['방어', '벵에돔', '볼락'], 'rt': 4.6, 'tp': '방파제', 'lat': 33.1744, 'lng': 126.2705, 'mo': [47, 16, 12, 39, 49, 28, 14, 40, 45, 45, 41, 23]},
+  {'id': 'p232', 'nm': '차귀도 내항', 'rg': '제주도', 'ds': 0, 'dp': '9–14m', 'sp': ['돌돔', '참돔', '갈치'], 'rt': 4.2, 'tp': '항구', 'lat': 33.3091, 'lng': 126.1441, 'mo': [47, 32, 7, 24, 2, 27, 17, 35, 16, 8, 10, 37]},
+  {'id': 'p233', 'nm': '비양도 방파제', 'rg': '제주도', 'ds': 0, 'dp': '6–36m', 'sp': ['벵에돔', '한치', '무늬오징어'], 'rt': 4.4, 'tp': '방파제', 'lat': 33.4048, 'lng': 126.2257, 'mo': [50, 36, 35, 22, 4, 50, 45, 20, 33, 14, 11, 33]},
+  {'id': 'p234', 'nm': '문섬 뜬방파제', 'rg': '제주도', 'ds': 0, 'dp': '5–13m', 'sp': ['무늬오징어', '갈치', '방어'], 'rt': 4.5, 'tp': '방파제', 'lat': 33.2267, 'lng': 126.5618, 'mo': [21, 21, 23, 18, 13, 48, 39, 33, 30, 35, 48, 41]},
+  {'id': 'p235', 'nm': '위미 내항', 'rg': '제주도', 'ds': 0, 'dp': '10–31m', 'sp': ['무늬오징어', '벵에돔', '방어'], 'rt': 4.7, 'tp': '항구', 'lat': 33.2766, 'lng': 126.6614, 'mo': [20, 24, 50, 7, 24, 16, 34, 46, 18, 1, 33, 49]},
+  {'id': 'p236', 'nm': '위미 수중여', 'rg': '제주도', 'ds': 0, 'dp': '8–34m', 'sp': ['무늬오징어', '방어', '한치'], 'rt': 4.3, 'tp': '선상', 'lat': 33.268, 'lng': 126.6643, 'mo': [5, 6, 10, 49, 34, 34, 0, 40, 4, 13, 42, 40]},
+  {'id': 'p237', 'nm': '한림 내항', 'rg': '제주도', 'ds': 0, 'dp': '9–31m', 'sp': ['다금바리', '돌돔', '방어'], 'rt': 3.9, 'tp': '항구', 'lat': 33.4165, 'lng': 126.2692, 'mo': [43, 9, 1, 29, 45, 21, 2, 5, 4, 3, 11, 50]},
+  {'id': 'p238', 'nm': '모슬포 외항', 'rg': '제주도', 'ds': 0, 'dp': '14–20m', 'sp': ['다금바리', '갈치', '참돔'], 'rt': 4.6, 'tp': '항구', 'lat': 33.2155, 'lng': 126.2498, 'mo': [1, 24, 43, 7, 34, 0, 41, 46, 39, 4, 48, 47]},
+  {'id': 'p239', 'nm': '애월 앞바다', 'rg': '제주도', 'ds': 0, 'dp': '11–41m', 'sp': ['한치', '돌돔', '참돔'], 'rt': 4.7, 'tp': '항구', 'lat': 33.4724, 'lng': 126.3219, 'mo': [48, 28, 24, 25, 42, 1, 30, 10, 34, 14, 8, 47]},
+  {'id': 'p240', 'nm': '성산 외항', 'rg': '제주도', 'ds': 0, 'dp': '8–36m', 'sp': ['방어', '벵에돔', '한치'], 'rt': 4.6, 'tp': '항구', 'lat': 33.475, 'lng': 126.9263, 'mo': [35, 9, 7, 2, 0, 36, 38, 25, 34, 35, 5, 19]},
+  {'id': 'p241', 'nm': '범섬 내항', 'rg': '제주도', 'ds': 0, 'dp': '12–37m', 'sp': ['갈치', '참돔', '돌돔'], 'rt': 4.4, 'tp': '항구', 'lat': 33.2172, 'lng': 126.5181, 'mo': [11, 14, 39, 16, 12, 7, 11, 42, 36, 3, 48, 35]},
+  {'id': 'p242', 'nm': '가파도 갯바위', 'rg': '제주도', 'ds': 0, 'dp': '10–34m', 'sp': ['볼락', '방어', '참돔'], 'rt': 4.5, 'tp': '갯바위', 'lat': 33.1676, 'lng': 126.2686, 'mo': [8, 42, 41, 15, 6, 18, 39, 4, 12, 20, 31, 28]},
+  {'id': 'p243', 'nm': '우도 선착장', 'rg': '제주도', 'ds': 0, 'dp': '15–43m', 'sp': ['방어', '다금바리', '돌돔'], 'rt': 4.2, 'tp': '항구', 'lat': 33.508, 'lng': 126.9536, 'mo': [0, 20, 15, 50, 14, 45, 47, 41, 27, 17, 23, 8]},
+  {'id': 'p244', 'nm': '남원 수중여', 'rg': '제주도', 'ds': 0, 'dp': '6–11m', 'sp': ['볼락', '돌돔', '갈치'], 'rt': 4.7, 'tp': '선상', 'lat': 33.2616, 'lng': 126.7168, 'mo': [41, 38, 5, 17, 8, 34, 12, 16, 46, 40, 4, 46]},
+  {'id': 'p245', 'nm': '함덕 방파제', 'rg': '제주도', 'ds': 0, 'dp': '9–18m', 'sp': ['무늬오징어', '벵에돔', '한치'], 'rt': 4.3, 'tp': '방파제', 'lat': 33.5472, 'lng': 126.6679, 'mo': [16, 34, 34, 30, 41, 49, 9, 23, 25, 14, 49, 37]},
+];
+var BOATS=[
+  {id:'b1',nm:'울산호',port:'방어진항',rg:'울산 동구',phone:'052-123-4567',price:8,sp:['참돔','방어','부시리'],rt:4.7,time:'05:00',seats:12,avail:4,lat:35.490,lng:129.440,desc:'20년 경력 선장. 타이라바·지깅 전문. 어군탐지기·전동릴 구비.',gear:['타이라바','지깅','전동릴'],schedule:[{dt:'2026-05-10',avail:4},{dt:'2026-05-11',avail:2},{dt:'2026-05-12',avail:8},{dt:'2026-05-13',avail:0},{dt:'2026-05-14',avail:6}]},
+  {id:'b2',nm:'정자호',port:'정자항',rg:'울산 북구',phone:'052-234-5678',price:10,sp:['대구','열기','우럭'],rt:4.5,time:'04:30',seats:15,avail:7,lat:35.630,lng:129.452,desc:'근해 바다낚시 전문. 초보자 환영. 장비 렌탈 가능.',gear:['지깅','다운샷','생미끼'],schedule:[{dt:'2026-05-10',avail:7},{dt:'2026-05-11',avail:5},{dt:'2026-05-12',avail:10},{dt:'2026-05-13',avail:3},{dt:'2026-05-14',avail:0}]},
+  {id:'b3',nm:'간절곶피싱',port:'서생항',rg:'울주군',phone:'052-345-6789',price:12,sp:['방어','부시리','참돔','광어'],rt:4.9,time:'05:30',seats:10,avail:2,lat:35.365,lng:129.350,desc:'최신 장비 보유. VIP 낚시 체험. 점심 제공.',gear:['타이라바','슬로우지깅','캐스팅'],schedule:[{dt:'2026-05-10',avail:2},{dt:'2026-05-11',avail:0},{dt:'2026-05-12',avail:5},{dt:'2026-05-13',avail:8},{dt:'2026-05-14',avail:3}]},
+];
+var LOGS=[
+  {id:'j1',dt:'2026-05-08',pt:'방어진 방파제',rs:'+4미',wx:'흐림·동풍 3m/s',ti:'중조',nt:'새벽 만조 직전 입질 폭발. 다음에도 같은 시간대로.',fi:[{n:'감성돔',c:3,s:'28–34cm'},{n:'벵에돔',c:1,s:'24cm'}],tp:'14.2°C',wt:'16.4°C',wi:'E 3m/s',wv:'0.6m'},
+  {id:'j2',dt:'2026-05-04',pt:'주전 갯바위 1번',rs:'참돔 54cm',wx:'맑음·남서풍',ti:'대조',nt:'타이라바 80g 오렌지. 최고기록!',fi:[{n:'참돔',c:1,s:'54cm'}],tp:'13.8°C',wt:'15.9°C',wi:'SW 4m/s',wv:'0.8m'},
+  {id:'j3',dt:'2026-04-29',pt:'진하항 외방파제',rs:'+5미',wx:'맑음·무풍',ti:'소조',nt:'낮조황 좋음. 우럭 포인트 새로 발견.',fi:[{n:'우럭',c:3,s:'25–30cm'},{n:'광어',c:2,s:'40cm'}],tp:'13.0°C',wt:'14.8°C',wi:'무풍',wv:'0.3m'},
+  {id:'j4',dt:'2026-04-22',pt:'간절곶 남쪽',rs:'꽝',wx:'비·북동풍',ti:'중조',nt:'너울 심해 조기 철수.',fi:[],tp:'11.2°C',wt:'13.1°C',wi:'NE 8m/s',wv:'1.8m'},
+  {id:'j5',dt:'2026-04-15',pt:'방어진 방파제',rs:'+6미',wx:'맑음·북풍',ti:'대조',nt:'봄철 감성돔 시즌 시작. 크릴 집어제 효과 탁월.',fi:[{n:'감성돔',c:4,s:'28–40cm'},{n:'벵에돔',c:2,s:'22–26cm'}],tp:'12.5°C',wt:'14.3°C',wi:'N 2m/s',wv:'0.5m'},
+];
+var NT=[
+  {id:'n1',tt:'오늘 방어진 조황 좋음',bd:'새벽 입질 폭발. 찌낚시 추천.',tm:'07:20',rd:false},
+  {id:'n2',tt:'주전 갯바위 물때 알림',bd:'내일 06:30 만조. 출조 최적.',tm:'어제',rd:false},
+  {id:'n3',tt:'태풍 주의보 해제',bd:'울산 동구·북구 파고 정상화.',tm:'2일 전',rd:true},
+];
+var SPINFO={
+  '감성돔':{s:'9–12월',max:'60cm',avg:'30–40cm',note:'방파제 외곽 찌낚시. 크릴·집어제 필수. 만조 전후 입질 집중.'},
+  '벵에돔':{s:'10–3월',max:'45cm',avg:'20–30cm',note:'여름 갯바위. 생갯지렁이 효과적. 조류 포인트.'},
+  '참돔':{s:'4–7월',max:'80cm',avg:'40–50cm',note:'타이라바·지깅 80–120g. 수심 30m 이상.'},
+  '돌돔':{s:'6–9월',max:'60cm',avg:'30–40cm',note:'갯바위 원투낚시. 새우·성게 미끼.'},
+  '무늬오징어':{s:'10–12월',max:'3kg',avg:'1–2kg',note:'에깅 2.5–3.5호. 야간 가로등 근처.'},
+  '우럭':{s:'연중',max:'50cm',avg:'25–35cm',note:'루어·지그헤드. 저층 구조물 공략.'},
+  '광어':{s:'3–6월',max:'90cm',avg:'40–60cm',note:'빠른 루어 액션. 백사장 인근.'},
+  '볼락':{s:'11–3월',max:'30cm',avg:'15–22cm',note:'지그헤드 1–2g. 야간 항구.'},
+  '전어':{s:'8–10월',max:'30cm',avg:'18–25cm',note:'사비끼 채비. 항구 조류 지점.'},
+  '고등어':{s:'9–11월',max:'40cm',avg:'25–30cm',note:'지깅 30g. 새벽 집중.'},
+  '학공치':{s:'11–2월',max:'40cm',avg:'25–35cm',note:'반유동 찌낚시. 크릴 미끼.'},
+  '놀래기':{s:'연중',max:'35cm',avg:'18–25cm',note:'갯바위 저층. 지렁이 미끼.'},
+  '방어':{s:'10–1월',max:'120cm',avg:'60–80cm',note:'선상낚시 지깅 120–200g. 수심 30–50m. 새벽 입질 집중.'},
+  '부시리':{s:'7–10월',max:'100cm',avg:'50–70cm',note:'캐스팅·포핑. 조류 빠른 구간. 활성도 높은 어종.'},
+  '대구':{s:'11–3월',max:'80cm',avg:'40–60cm',note:'지깅·다운샷. 수심 40m 이상. 저층 공략.'},
+  '열기':{s:'연중',max:'40cm',avg:'20–30cm',note:'생미끼·지깅. 군체 어종. 수심 25–40m.'},
+};
+var A={tab:'home',fav:{p1:1,p2:1,p5:1},mAct:null,mFlt:'전체',mQ:'',jFlt:'전체',jDate:null,spd:'연간',lf:{dt:todayStr(),st:'05:00',et:'10:00',pt:'',ba:'크릴 + 집어제',gr:'찌낚시',nt:'',tp:'방파제',boat:'',lat:35.5049,lng:129.4159,addr:'',markers:[],photos:[]},lfi:[{s:'감성돔',c:'',sz:''}],lco:[{n:''}],tS:1,tW:1,tT:1,tP:1,hQ:'',friends:['이도윤','김지훈'],userName:'상현',userRegion:'울산 동구',userUnit:'미터 / °C',seaData:null,seaFetching:false};
+var logMap=null,logMapMarkers=[];
+var REGION_COORDS={'서울/경기':[37.5665,126.9780],'인천':[37.4563,126.7052],'충남/충북':[36.8,127.1],'전북':[35.82,127.15],'전남':[34.868,126.991],'경남':[35.2,128.5],'부산':[35.1796,129.0756],'울산 동구':[35.490,129.420],'울산 북구':[35.557,129.361],'울주군':[35.520,129.240],'경북':[36.5,128.5],'강원':[37.8,128.9],'제주':[33.4996,126.5312]};
+function applyRegionFallback(){var rc=REGION_COORDS[A.userRegion]||[35.490,129.420];if(!A.myLat){A.myLat=rc[0];A.myLng=rc[1];}if(!A.mCenter){A.mCenter=[rc[0],rc[1]];}updatePTSDist();if(A.tab==='home'||A.tab==='map')render();}
+function saveSettings(){try{localStorage.setItem('fsNoteSettings',JSON.stringify({userName:A.userName,userRegion:A.userRegion,userUnit:A.userUnit,tS:A.tS,tW:A.tW,tT:A.tT,tP:A.tP,friends:A.friends}));}catch(x){}}
+function loadSettings(){try{var s=JSON.parse(localStorage.getItem('fsNoteSettings')||'{}');if(s.userName)A.userName=s.userName;if(s.userRegion)A.userRegion=s.userRegion;if(s.userUnit)A.userUnit=s.userUnit;if(s.tS!==undefined)A.tS=s.tS;if(s.tW!==undefined)A.tW=s.tW;if(s.tT!==undefined)A.tT=s.tT;if(s.tP!==undefined)A.tP=s.tP;if(s.friends&&s.friends.length)A.friends=s.friends;}catch(x){}}
+function saveLogs(){try{localStorage.setItem('fsPtLogs',JSON.stringify(LOGS));}catch(x){}}
+function loadLogs(){try{var d=JSON.parse(localStorage.getItem('fsPtLogs')||'null');if(d&&Array.isArray(d)){LOGS.length=0;d.forEach(function(l){LOGS.push(l);});}}catch(x){}}
+function saveFavs(){try{localStorage.setItem('fsPtFavs',JSON.stringify(A.fav));}catch(x){}}
+function loadFavs(){try{var d=JSON.parse(localStorage.getItem('fsPtFavs')||'null');if(d&&typeof d==='object')A.fav=d;}catch(x){}}
+loadSettings();
+loadLogs();
+loadFavs();
+loadPtOverrides();
+function e(s){return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+var toastTimer=null;
+function showToast(m){var el=document.getElementById('toast');el.textContent=m;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.classList.remove('show');},2000);}
+function go(tab){if(A.tab==='map'&&leafletMap){A.mCenter=[leafletMap.getCenter().lat,leafletMap.getCenter().lng];A.mZoom=leafletMap.getZoom();}A.tab=tab;document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('on',b.dataset.go===tab);});closeAll();render();}
+function showOv(id,html){var el=document.getElementById(id);if(html!==undefined)el.innerHTML=html;el.scrollTop=0;requestAnimationFrame(function(){el.classList.add('show');});}
+function hideOv(id){var el=document.getElementById(id);el.classList.remove('show');setTimeout(function(){if(!el.classList.contains('show'))el.innerHTML='';},280);}
+function closeAll(){['ov-pt','ov-log','ov-ld','ov-notif','ov-set','ov-sp','ov-boat','ov-search','ov-add-boat','ov-pm','ov-reset-confirm','ov-delete-confirm'].forEach(hideOv);}
+function resetApp(){
+  showOv('ov-reset-confirm',
+    '<div class="nav"><button class="nb" data-close="ov-reset-confirm">'+I.back+'</button><div class="nav-tx"><h1>앱 초기화</h1></div></div>'
+    +'<div class="pg"><div style="padding:20px 14px">'
+    +'<div style="background:#fff3f3;border:1px solid #fecaca;border-radius:var(--rd2);padding:14px 16px;margin-bottom:20px">'
+    +'<div style="font-size:15px;font-weight:700;color:#b91c1c;margin-bottom:10px">⚠ 삭제되는 데이터</div>'
+    +'<div style="font-size:14px;color:#7f1d1d;line-height:2">'
+    +'<div>📋 낚시 일지 전체 (<strong id="reset-log-cnt">'+LOGS.length+'</strong>건)</div>'
+    +'<div>⭐ 즐겨찾기 포인트</div>'
+    +'<div>👤 사용자 이름 · 지역 · 단위 설정</div>'
+    +'<div>🔔 알림 기록</div>'
+    +'</div></div>'
+    +'<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--rd2);padding:14px 16px;margin-bottom:28px">'
+    +'<div style="font-size:15px;font-weight:700;color:#166534;margin-bottom:10px">✓ 유지되는 데이터</div>'
+    +'<div style="font-size:14px;color:#14532d;line-height:2">'
+    +'<div>📍 낚시 포인트 DB (245개)</div>'
+    +'<div>📍 포인트 위치 수정 내역</div>'
+    +'</div></div>'
+    +'<div style="display:flex;gap:10px">'
+    +'<button class="btn sec" data-close="ov-reset-confirm" style="flex:1">취소</button>'
+    +'<button class="btn" style="flex:2;background:#ef4444;color:#fff;font-size:15px;font-weight:700" onclick="confirmResetApp()">초기화 실행</button>'
+    +'</div></div></div>'
+  );
+}
+function confirmResetApp(){
+  LOGS.length=0;
+  A.fav={};
+  NT.length=0;
+  A.userName='낚시인';A.userRegion='울산 동구';A.userUnit='미터 / °C';
+  A.tS=1;A.tW=1;A.tT=1;A.tP=1;A.friends=[];
+  try{localStorage.removeItem('fsNoteSettings');localStorage.removeItem('fsPtLogs');localStorage.removeItem('fsPtFavs');}catch(x){}
+  saveSettings();
+  hideOv('ov-reset-confirm');hideOv('ov-set');
+  A.tab='home';render();
+  showToast('앱이 초기화되었습니다');
+}
+function deleteLog(id){
+  var ev=LOGS.find(function(l){return l.id===id;});
+  if(!ev)return;
+  A._pendingDeleteId=id;
+  showOv('ov-delete-confirm',
+    '<div class="nav"><button class="nb" data-close="ov-delete-confirm">'+I.back+'</button><div class="nav-tx"><h1>일지 삭제</h1></div></div>'
+    +'<div class="pg"><div style="padding:20px 14px">'
+    +'<div style="background:#fff3f3;border:1px solid #fecaca;border-radius:var(--rd2);padding:16px;margin-bottom:20px">'
+    +'<div style="font-size:16px;font-weight:700;color:#b91c1c;margin-bottom:12px">🗑 삭제할 일지</div>'
+    +'<div style="font-size:15px;color:#7f1d1d;line-height:1.8">'
+    +'<div><strong>날짜:</strong> '+e(ev.dt)+'</div>'
+    +'<div><strong>포인트:</strong> '+e(ev.pt)+'</div>'
+    +'<div><strong>조과:</strong> '+e(ev.rs)+'</div>'
+    +'</div></div>'
+    +'<p style="font-size:14px;color:var(--t3);margin-bottom:20px;text-align:center">삭제된 일지는 복구할 수 없습니다.</p>'
+    +'<div style="display:flex;gap:10px">'
+    +'<button class="btn sec" data-close="ov-delete-confirm" style="flex:1">취소</button>'
+    +'<button class="btn" style="flex:2;background:#ef4444;color:#fff;font-size:15px;font-weight:700" onclick="confirmDeleteLog()">삭제</button>'
+    +'</div></div></div>'
+  );
+}
+function confirmDeleteLog(){
+  var id=A._pendingDeleteId;
+  if(!id)return;
+  var idx=LOGS.findIndex(function(l){return l.id===id;});
+  if(idx>=0)LOGS.splice(idx,1);
+  saveLogs();
+  A._pendingDeleteId=null;
+  hideOv('ov-delete-confirm');
+  hideOv('ov-ld');
+  render();
+  showToast('일지가 삭제되었습니다');
+}
+function render(){var c=document.getElementById('pg');c.scrollTop=0;if(A.tab==='home')c.innerHTML=rHome();else if(A.tab==='map')c.innerHTML=rMap();else if(A.tab==='jnl')c.innerHTML=rJnl();else if(A.tab==='stats')c.innerHTML=rStats();}
+function getDist(lat1,lon1,lat2,lon2){var p=0.017453292519943295,c=Math.cos;var a=0.5-c((lat2-lat1)*p)/2+c(lat1*p)*c(lat2*p)*(1-c((lon2-lon1)*p))/2;return (12742*Math.asin(Math.sqrt(a))).toFixed(1);}
+function updatePTSDist(){var lat=A.mCenter?A.mCenter[0]:A.myLat;var lng=A.mCenter?A.mCenter[1]:A.myLng;if(lat&&lng){PTS.forEach(function(p){p.ds=parseFloat(getDist(lat,lng,p.lat,p.lng));});}}
+function todayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function getTideInfo(pt){
+  var today=new Date();
+  var refNM=new Date(2000,0,6,18,14);
+  var synodic=29.530589;
+  var phase=(((today-refNM)/86400000)%synodic+synodic)%synodic;
+  var lunarDay=Math.floor(phase)+1;
+  var muldae=lunarDay<=15?lunarDay:lunarDay-15;
+  var tideType=muldae<=2||muldae>=13?'사리':muldae===7||muldae===8?'조금':muldae===9?'무시':'중조';
+  var lat=pt?pt.lat:35.5,lng=pt?pt.lng:129.4;
+  var base,range;
+  if(lat<33.7){base=6*60;range=1.8;}
+  else if(lng>129.0&&lat>34.5){base=5*60+30;range=0.35;}
+  else if(lat<35.0&&lng>127.5){base=6*60+30;range=2.5;}
+  else if(lng<127.5){
+    if(lat>36.5){base=4*60+30;range=8.5;}
+    else if(lat>35.5){base=5*60;range=6.0;}
+    else{base=5*60+30;range=4.0;}
+  }else{base=6*60;range=1.0;}
+  var rr=muldae<=2||muldae>=13?1.0:muldae===7||muldae===8?0.25:muldae===9?0.2:muldae<7?0.25+0.75*(muldae-2)/5:0.25+0.75*(13-muldae)/4;
+  if(rr<0.2)rr=0.2;if(rr>1.0)rr=1.0;
+  var hiH=(range*rr).toFixed(1)+'m',loH=Math.max(0.1,range*rr*0.08).toFixed(1)+'m';
+  var half=745,offset=(muldae-1)*50;
+  var ht1=(base+offset)%(24*60),ht2=(ht1+half)%(24*60);
+  var lt1=(ht1+Math.round(half/2))%(24*60),lt2=(lt1+half)%(24*60);
+  function fm(m){var h=Math.floor(m/60)%24,mm=m%60;return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm;}
+  var evs=[{t:'만조',mins:ht1,ht:hiH},{t:'간조',mins:lt1,ht:loH},{t:'만조',mins:ht2,ht:hiH},{t:'간조',mins:lt2,ht:loH}].sort(function(a,b){return a.mins-b.mins;});
+  var now=today.getHours()*60+today.getMinutes();
+  var nextHTEvt=evs.find(function(e){return e.t==='만조'&&e.mins>now;})||evs.find(function(e){return e.t==='만조';});
+  var hi=evs.indexOf(nextHTEvt);
+  var labels=[evs[(hi-1+4)%4],nextHTEvt,evs[(hi+1)%4]];
+  var ext=evs.concat({t:evs[0].t,mins:evs[0].mins+24*60,ht:evs[0].ht});
+  var pct=50,prev=null,nxt=null;
+  for(var i=0;i<ext.length-1;i++){if(ext[i].mins<=now&&ext[i+1].mins>now){prev=ext[i];nxt=ext[i+1];break;}}
+  if(prev&&nxt){var tt=(now-prev.mins)/(nxt.mins-prev.mins);var cs=(1-Math.cos(tt*Math.PI))/2;pct=prev.t==='만조'?Math.round(100*(1-cs)):Math.round(100*cs);}
+  return {muldae:muldae,tideType:tideType,nextHT:fm(nextHTEvt.mins),tidePercent:pct,labels:labels.map(function(e){return {t:e.t,h:fm(e.mins),ht:e.ht};}),events:evs.map(function(e){return {t:e.t,h:fm(e.mins),ht:e.ht};}),goldenStart:fm((nextHTEvt.mins-60+24*60)%(24*60)),goldenEnd:fm((nextHTEvt.mins+60)%(24*60))};
+}
+function rHome(){
+  var unread=NT.filter(function(n){return !n.rd;}).length;
+  var logRows='';for(var i=0;i<Math.min(3,LOGS.length);i++){var ev=LOGS[i];var fish=ev.fi.map(function(f){return f.n+' '+f.c+'미';}).join('·')||'꽝';logRows+='<div class="row" data-lid="'+ev.id+'"><div class="ri">'+I.fish+'</div><div class="rt"><div class="a">'+e(ev.pt)+'</div><div class="b">'+e(ev.dt)+' · '+e(fish)+'</div></div><span class="chip '+(ev.rs==='꽝'?'r':'g')+'">'+e(ev.rs)+'</span></div>';}
+  if(navigator.geolocation && !A.gpsFetched){A.gpsFetched=true;navigator.geolocation.getCurrentPosition(function(pos){A.myLat=pos.coords.latitude;A.myLng=pos.coords.longitude;if(!A.mCenter){A.mCenter=[A.myLat,A.myLng];}if(A.tab==='home'||A.tab==='map')render();},function(){applyRegionFallback();});}else if(!A.gpsFetched&&!navigator.geolocation){A.gpsFetched=true;applyRegionFallback();}
+  updatePTSDist();
+  var sortedPts=PTS.slice().sort(function(a,b){return a.ds-b.ds;});
+  var best=sortedPts[0];
+  var ptRows='';for(var j=0;j<3;j++){var p=sortedPts[j];ptRows+='<div class="row" data-pid="'+p.id+'"><div class="ri">'+I.pin+'</div><div class="rt"><div class="a">'+e(p.nm)+'</div><div class="b">'+e(p.rg)+' · 수심 '+e(p.dp)+'</div></div><div class="re"><span style="font-size:14px;font-weight:700;color:var(--g)">'+p.ds+'km</span><span class="chip n" style="font-size:12px">★ '+p.rt+'</span></div></div>';}
+  var seaRegion=(function(pt){if(!pt)return '근해';var la=pt.lat,ln=pt.lng;if(la<33.7)return '제주 근해';if(ln>129.0&&la>34.5)return la>37.5?'동해 북부':la>36.0?'동해 중부':'동해 남부';if(la<35.2&&ln>127.5)return '남해';if(ln<127.5)return la>37.0?'경기만':la>36.0?'서해 중부':'서해 남부';return '근해';})(best);
+  var td=getTideInfo(best);
+  var _td=new Date();var _days=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];var _todayStr=_td.getFullYear()+'년 '+(_td.getMonth()+1)+'월 '+_td.getDate()+'일 '+_days[_td.getDay()];
+  var _kym=_td.getFullYear()+'-'+String(_td.getMonth()+1).padStart(2,'0');
+  var _kMonthCnt=LOGS.filter(function(l){return l.dt&&l.dt.indexOf(_kym)===0;}).length;
+  var _kTotalFish=LOGS.reduce(function(a,l){return a+l.fi.reduce(function(b,f){return b+(parseInt(f.c)||0);},0);},0);
+  var _kMaxSz=0,_kMaxFish='',_kMaxDate='';
+  LOGS.forEach(function(l){l.fi.forEach(function(f){var sz=parseFloat(f.s);if(!isNaN(sz)&&sz>_kMaxSz){_kMaxSz=sz;_kMaxFish=f.n;_kMaxDate=l.dt?l.dt.slice(5):'';}});});
+  return '<div><div class="phd"><div style="display:flex;align-items:center;justify-content:space-between"><div><div class="eyebrow">'+_todayStr+'</div><h1>안녕하세요, '+e(A.userName)+'님</h1></div><div style="display:flex;gap:6px"><button class="ib" data-act="search">'+I.src+'</button><button class="ib" data-act="notif" style="position:relative">'+I.bell+(unread?'<span class="ndot"></span>':'')+'</button><button class="ib" data-act="settings">'+I.set+'</button></div></div></div>'+'<div class="section"><div class="hero-card"><div class="hero-top"><div class="eyebrow">내 위치 기반 추천 포인트</div><h2>지금 가장 가까운 '+e(best.nm)+'에서<br>짜릿한 손맛을 느껴보세요!</h2></div><div class="hero-bot"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"><span class="chip g">거리 '+best.ds+'km</span><span class="chip n">별점 '+best.rt+'</span><span class="chip n" data-act="tide" data-tidept="'+best.id+'" style="cursor:pointer">만조 '+td.nextHT+'</span></div><button class="btn pri" data-pid="'+best.id+'">'+I.arr+'포인트 상세 보기</button></div></div></div><div style="padding:10px 14px 0"><div class="kpi-grid"><div class="kpi" data-go="stats"><div class="lb">이달 출조</div><div class="vl">'+_kMonthCnt+'<span class="u">회</span></div><div class="dl">'+(LOGS.length>0?'누적 '+LOGS.length+'회':'기록 없음')+'</div></div><div class="kpi" data-go="stats"><div class="lb">총 마릿수</div><div class="vl">'+_kTotalFish+'<span class="u">미</span></div><div class="dl">▲ 평년 +18%</div></div><div class="kpi" data-go="stats"><div class="lb">최대 사이즈</div><div class="vl">'+(_kMaxSz>0?_kMaxSz:'--')+'<span class="u">'+(_kMaxSz>0?'cm':'')+'</span></div><div class="dl dim">'+(_kMaxFish&&_kMaxDate?_kMaxFish+' '+_kMaxDate:'기록 없음')+'</div></div><div class="kpi" data-go="stats"><div class="lb">조황 점수</div><div class="vl">8.2<span class="u">/10</span></div><div class="dl">상위 12%</div></div></div></div><div class="section"><div class="card"><div class="row-hr"><h2>오늘의 바다</h2><span class="chip g">'+e(seaRegion)+'</span></div><div class="info-grid"><div class="ic"><div class="ik">수온</div><div class="iv">16.4°C</div></div><div class="ic"><div class="ik">기온</div><div class="iv">14.2°C</div></div><div class="ic"><div class="ik">물때 '+td.muldae+'물</div><div class="iv">'+td.tideType+'</div></div><div class="ic"><div class="ik">파고</div><div class="iv">0.6m</div></div></div><div class="tide" data-act="tide" data-tidept="'+best.id+'" style="cursor:pointer"><div class="fill" style="width:'+td.tidePercent+'%"></div><div class="pin" style="left:'+td.tidePercent+'%"></div></div><div class="tide-lbs"><span>'+td.labels[0].t+' '+td.labels[0].h+'</span><span style="color:var(--g);font-weight:600" data-act="tide" data-tidept="'+best.id+'">'+td.labels[1].t+' '+td.labels[1].h+' ↑</span><span>'+td.labels[2].t+' '+td.labels[2].h+'</span></div></div></div><div class="section"><div class="card"><div class="row-hr"><h2>최근 일지</h2><span class="slnk" data-go="jnl">전체보기 →</span></div><div class="rows">'+logRows+'</div></div></div><div class="section" style="padding-bottom:14px"><div class="card"><div class="row-hr"><h2>내 근처 포인트</h2><span class="slnk" data-go="map">지도에서 →</span></div><div class="rows">'+ptRows+'</div></div></div></div>';
+}
+function rSearchResults(q){
+  q=q.toLowerCase();
+  var ptR=PTS.filter(function(p){return p.nm.toLowerCase().indexOf(q)>=0||p.rg.toLowerCase().indexOf(q)>=0||p.sp.some(function(s){return s.indexOf(q)>=0;})||p.tp.indexOf(q)>=0;});
+  var spR=Object.keys(SPINFO).filter(function(s){return s.indexOf(q)>=0;});
+  var btR=BOATS.filter(function(b){return b.nm.toLowerCase().indexOf(q)>=0||b.port.toLowerCase().indexOf(q)>=0||b.sp.some(function(s){return s.indexOf(q)>=0;});});
+  var logR=LOGS.filter(function(l){return l.pt.toLowerCase().indexOf(q)>=0||l.fi.some(function(f){return f.n.indexOf(q)>=0;});});
+  var webQ=encodeURIComponent(A.hQ);
+  var webSection='<div class="section" style="padding-bottom:16px"><div class="card"><div class="sr-cat">🌐 웹에서 검색</div><p style="font-size:14px;color:var(--t3);margin-bottom:12px;line-height:1.5">"'+e(A.hQ)+'" 관련 낚시 정보를 웹에서 더 찾아보세요</p><div style="display:flex;gap:8px"><a href="https://search.naver.com/search.naver?query='+webQ+'" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 0;border-radius:var(--rd);background:#03C75A;color:#fff;font-size:15px;font-weight:600;text-decoration:none;border:none;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 3h7.5v8.5L13.5 7H21v14h-7.5v-8.5L10.5 17H3V3z" fill="#fff"/></svg>네이버 검색</a><a href="https://www.google.com/search?q='+webQ+'" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 0;border-radius:var(--rd);background:#4285F4;color:#fff;font-size:15px;font-weight:600;text-decoration:none;border:none;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><path d="M12 2a10 10 0 0 1 0 20" fill="rgba(255,255,255,0.3)"/><path d="M8 12h8M12 8v8" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>구글 검색</a></div><div style="display:flex;gap:8px;margin-top:8px"><a href="https://www.youtube.com/results?search_query='+webQ+'" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 0;border-radius:var(--rd);background:#FF0000;color:#fff;font-size:15px;font-weight:600;text-decoration:none;border:none;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M23 7s-.3-2-1.2-2.8C20.7 3.2 19.5 3.2 19 3.1 15.5 2.8 12 2.8 12 2.8s-3.5 0-7 .3c-.5.1-1.7.1-2.8 1.1C1.3 5 1 7 1 7S.7 9.2.7 11.4v2c0 2.2.3 4.4.3 4.4s.3 2 1.2 2.8c1.1 1 2.5.9 3.1 1 2.3.2 9.7.3 9.7.3s3.5 0 7-.3c.5-.1 1.7-.1 2.8-1.1.9-.8 1.2-2.8 1.2-2.8s.3-2.2.3-4.4v-2c0-2.2-.3-4.4-.3-4.4z"/><path d="M9.5 15.5V8.5l6.5 3.5-6.5 3.5z" fill="#FF0000" stroke="#fff" stroke-width="0.5"/></svg>유튜브 검색</a><a href="https://m.search.naver.com/search.naver?where=image&query='+webQ+'" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 0;border-radius:var(--rd);background:var(--bg3);color:var(--t1);font-size:15px;font-weight:600;text-decoration:none;border:1px solid var(--bd);cursor:pointer">📷 이미지 검색</a></div></div></div>';
+  var html='';
+  if(!ptR.length&&!spR.length&&!btR.length&&!logR.length) return '<div class="section"><div class="sr-empty"><div style="font-size:36px;margin-bottom:8px">🔍</div>"'+e(A.hQ)+'" 앱 내 검색 결과가 없습니다</div></div>'+webSection;
+  if(ptR.length){html+='<div class="section"><div class="card"><div class="sr-cat">포인트 '+ptR.length+'건</div><div class="rows">'+ptR.map(function(p){return '<div class="row" data-pid="'+p.id+'"><div class="ri'+(p.tp==="선상"?" bl":"")+'">'+( p.tp==="선상"?I.boat:I.pin)+'</div><div class="rt"><div class="a">'+e(p.nm)+'</div><div class="b">'+e(p.rg)+' · '+e(p.tp)+' · 수심 '+e(p.dp)+'</div></div><div class="re"><span style="font-size:14px;font-weight:700;color:var(--g)">'+p.ds+'km</span><span class="chip n" style="font-size:12px">★ '+p.rt+'</span></div></div>';}).join('')+'</div></div></div>';}
+  if(spR.length){html+='<div class="section"><div class="card"><div class="sr-cat">어종 '+spR.length+'건</div><div class="rows">'+spR.map(function(s){var info=SPINFO[s];return '<div class="row" data-sp="'+e(s)+'"><div class="ri">'+I.fish+'</div><div class="rt"><div class="a">'+e(s)+'</div><div class="b">제철 '+info.s+' · 최대 '+info.max+'</div></div>'+I.chv+'</div>';}).join('')+'</div></div></div>';}
+  if(btR.length){html+='<div class="section"><div class="card"><div class="sr-cat">선상업체 '+btR.length+'건</div><div class="rows">'+btR.map(function(b){return '<div class="row" data-bid="'+b.id+'"><div class="ri bl">'+I.boat+'</div><div class="rt"><div class="a">'+e(b.nm)+'</div><div class="b">'+e(b.port)+' · '+b.time+' 출항</div></div><div class="re"><span style="font-size:14px;font-weight:700;color:var(--bl)">'+b.price+'만원</span><span class="chip '+(b.avail>0?'bl':'r')+'">'+(b.avail>0?b.avail+'자리':'마감')+'</span></div></div>';}).join('')+'</div></div></div>';}
+  if(logR.length){html+='<div class="section"><div class="card"><div class="sr-cat">일지 '+logR.length+'건</div><div class="rows">'+logR.map(function(ev){var fish=ev.fi.map(function(f){return f.n+" "+f.c+"미";}).join("·")||"꽝";return '<div class="row" data-lid="'+ev.id+'"><div class="ri">'+I.fish+'</div><div class="rt"><div class="a">'+e(ev.pt)+'</div><div class="b">'+e(ev.dt)+' · '+e(fish)+'</div></div><span class="chip '+(ev.rs==="꽝"?"r":"g")+'">'+e(ev.rs)+'</span></div>';}).join('')+'</div></div></div>';}
+  html+=webSection;
+  return html;
+}
+function openSearch(){
+  A.hQ='';
+  showOv('ov-search','<div class="nav"><button class="nb" data-close="ov-search">'+I.back+'</button><div class="nav-tx"><h1>검색</h1></div></div><div style="padding:10px 14px 0"><div class="hsearch">'+I.src+'<input id="home-search" placeholder="포인트 · 어종 · 선상업체 검색" value="" autofocus></div></div><div class="pg" id="search-results" style="flex:1;overflow-y:auto"><div class="section"><div class="sr-empty" style="padding:40px 0"><div style="font-size:36px;margin-bottom:8px">🔍</div>검색어를 입력하세요</div></div></div>');
+  setTimeout(function(){var el=document.getElementById('home-search');if(el)el.focus();},100);
+}
+function rebuildSearch(){
+  var sr=document.getElementById('search-results');
+  var inp=document.getElementById('home-search');
+  if(!sr||!inp) return;
+  var q=A.hQ;
+  if(!q){sr.innerHTML='<div class="section"><div class="sr-empty" style="padding:40px 0"><div style="font-size:36px;margin-bottom:8px">🔍</div>검색어를 입력하세요</div></div>';return;}
+  sr.innerHTML=rSearchResults(q);
+}
+var leafletMap = null;
+var mapMarkers = [];
+var ptEditMarker = null;
+function loadPtOverrides(){try{var ov=JSON.parse(localStorage.getItem('pt_overrides')||'{}');Object.keys(ov).forEach(function(id){var p=PTS.find(function(x){return x.id===id;});if(p){p.lat=ov[id].lat;p.lng=ov[id].lng;}});}catch(x){}}
+function savePtOverride(id,lat,lng){try{var ov=JSON.parse(localStorage.getItem('pt_overrides')||'{}');ov[id]={lat:lat,lng:lng};localStorage.setItem('pt_overrides',JSON.stringify(ov));}catch(x){}}
+function startPtEdit(id){
+  var p=PTS.find(function(x){return x.id===id;});if(!p)return;
+  hideOv('ov-pt');
+  A.tab='map';A.mAct=id;A.ptEditing=id;
+  render();
+  setTimeout(function(){
+    if(!leafletMap)return;
+    leafletMap.setView([p.lat,p.lng],17);
+    var icon=L.divIcon({html:'<div style="width:32px;height:32px;background:#0f6e56;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;background:#fff;border-radius:50%"></div></div>',className:'',iconSize:[32,32],iconAnchor:[16,16]});
+    ptEditMarker=L.marker([p.lat,p.lng],{icon:icon,draggable:true,zIndexOffset:2000}).addTo(leafletMap);
+    ptEditMarker.on('drag',function(ev){var ll=ev.latlng;var cd=document.getElementById('pt-edit-coord');if(cd)cd.textContent=ll.lat.toFixed(4)+', '+ll.lng.toFixed(4);});
+    var bar=document.createElement('div');
+    bar.id='pt-edit-bar';
+    bar.style.cssText='position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-radius:16px 16px 0 0;padding:16px 16px calc(28px + env(safe-area-inset-bottom));z-index:9999;box-shadow:0 -4px 20px rgba(0,0,0,.25);';
+    bar.innerHTML='<div style="width:36px;height:4px;background:var(--bd);border-radius:2px;margin:0 auto 14px"></div>'
+      +'<div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px">'+e(p.nm)+'</div>'
+      +'<div style="font-size:13px;color:var(--t3);margin-bottom:6px">마커를 드래그해서 위치를 조정하세요</div>'
+      +'<div style="font-size:14px;color:var(--g);font-weight:600;margin-bottom:14px" id="pt-edit-coord">'+p.lat.toFixed(4)+', '+p.lng.toFixed(4)+'</div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<button onclick="cancelPtEdit()" style="flex:1;padding:13px;border:1px solid var(--bd);border-radius:10px;background:var(--bg2);font-size:15px;color:var(--t2)">취소</button>'
+      +'<button onclick="confirmPtEdit(\''+id+'\')" style="flex:2;padding:13px;border:none;border-radius:10px;background:var(--g);color:#fff;font-size:15px;font-weight:700">저장</button>'
+      +'</div>';
+    var mapWrap=document.getElementById('leaflet-map');
+    if(mapWrap)mapWrap.parentElement.appendChild(bar);
+  },250);
+}
+function cancelPtEdit(){
+  if(ptEditMarker){leafletMap.removeLayer(ptEditMarker);ptEditMarker=null;}
+  var bar=document.getElementById('pt-edit-bar');if(bar)bar.remove();
+  A.ptEditing=null;updateMapMarkers();
+}
+function confirmPtEdit(id){
+  if(!ptEditMarker)return;
+  var ll=ptEditMarker.getLatLng();
+  var lat=parseFloat(ll.lat.toFixed(4)),lng=parseFloat(ll.lng.toFixed(4));
+  var p=PTS.find(function(x){return x.id===id;});
+  if(p){p.lat=lat;p.lng=lng;updatePTSDist();}
+  savePtOverride(id,lat,lng);
+  cancelPtEdit();
+  showToast('위치가 저장되었습니다 ✓');
+}
+function initMap() {
+  if(leafletMap) { leafletMap.remove(); leafletMap = null; }
+  window.mapGpsDot = null;
+  var mc = document.getElementById('leaflet-map');
+  if(!mc) return;
+  var center = A.mCenter || (A.myLat ? [A.myLat, A.myLng] : [36.5, 127.9]);
+  var zoom = A.mZoom || (A.mCenter ? 13 : A.myLat ? 12 : 7);
+  leafletMap = L.map('leaflet-map', {zoomControl: false}).setView(center, zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(leafletMap);
+  if(A.myLat && A.myLng) {
+    window.mapGpsDot = L.circleMarker([A.myLat, A.myLng],{radius:8,fillColor:'#3b82f6',color:'#fff',weight:2,opacity:1,fillOpacity:0.8}).addTo(leafletMap);
+    window.mapGpsDot.bindTooltip('내 위치',{permanent:true,direction:'top',offset:[0,-10]});
+  }
+  updateMapMarkers();
+}
+function updateMapMarkers() {
+  if(!leafletMap) return;
+  mapMarkers.forEach(function(m) { leafletMap.removeLayer(m); });
+  mapMarkers = [];
+  var f=A.mFlt,q=A.mQ.toLowerCase();
+  var fl=PTS.filter(function(p){var mf=f==='즐겨찾기'?A.fav[p.id]:f==='전체'?true:p.tp===f;var mq=!q||p.nm.indexOf(q)>=0||p.rg.indexOf(q)>=0||p.sp.some(function(s){return s.indexOf(q)>=0;});return mf&&mq;});
+  fl.forEach(function(p) {
+    var mkCls=p.tp==='선상'?'bl':(A.fav[p.id]?'y':p.id==='p1'?'r':'g');
+    var iconHtml = '<div class="mk '+mkCls+(A.mAct===p.id?' on':'')+'"></div>';
+    var icon = L.divIcon({ html: iconHtml, className: '', iconSize: [26, 26], iconAnchor: [13, 26] });
+    var marker = L.marker([p.lat, p.lng], {icon: icon}).addTo(leafletMap);
+    marker.on('click', function() {
+      if(A.mAct===p.id) { openPt(p.id); } else { A.mAct=p.id; updateMapMarkers(); }
+    });
+    mapMarkers.push(marker);
+    if(A.mAct===p.id) {
+       L.popup({offset: [0, -26], closeButton: false, autoPan: false})
+         .setLatLng([p.lat, p.lng])
+         .setContent('<div class="mpop" style="position:static; transform:none;"><div class="a">'+e(p.nm)+'</div><div class="b">★ '+p.rt+' · '+p.ds+'km · 다시 탭 → 상세</div></div>')
+         .openOn(leafletMap);
+    }
+  });
+  var flSorted=fl.slice().sort(function(a,b){return a.ds-b.ds;});
+  var flList=flSorted.slice(0,30);
+  var listRows=flList.length===0?'<div style="text-align:center;padding:16px;color:var(--t3);font-size:15px">검색 결과 없음</div>':flList.map(function(p){return '<div class="row" data-pid="'+p.id+'"><div class="ri">'+I.pin+'</div><div class="rt"><div class="a">'+e(p.nm)+'</div><div class="b">'+e(p.rg)+' · '+e(p.dp)+' · '+p.sp.slice(0,2).join('·')+'</div></div><div class="re"><span style="font-size:14px;font-weight:700;color:var(--g)">'+p.ds+'km</span><span class="chip n" style="font-size:12px">★ '+p.rt+'</span></div></div>';}).join('');
+  var mapList = document.getElementById('map-list-rows');
+  var mapCount = document.getElementById('map-count');
+  if(mapList) mapList.innerHTML = listRows;
+  if(mapCount) mapCount.textContent = '포인트 '+fl.length+'곳';
+}
+function rMap(){
+  var f=A.mFlt,q=A.mQ.toLowerCase();
+  var chips=['전체','방파제','갯바위','선상','즐겨찾기'].map(function(fi){return '<span class="tag'+(f===fi?' on':'')+'" data-mf="'+fi+'">'+fi+'</span>';}).join('');
+  setTimeout(initMap, 100);
+  return '<div style="display:flex;flex-direction:column;height:100%;position:relative;overflow:hidden"><div style="position:relative;flex:1"><div id="leaflet-map" style="position:absolute;inset:0;z-index:1;"></div><div style="position:absolute;top:10px;left:10px;right:10px;display:flex;gap:8px;z-index:10;"><div class="msearch" style="position:relative;top:0;left:0;right:0;flex:1;display:flex;align-items:center;padding-right:8px;margin:0;height:40px;">'+I.src+'<input id="mqinput" placeholder="포인트 · 주소 검색" value="'+e(A.mQ)+'" oninput="A.mQ=this.value;A.mAct=null;updateMapMarkers()" style="flex:1;">'+(A.mQ?'<span data-act="map-clear" style="margin-left:4px;padding:4px;">'+I.x+'</span>':'')+'</div><button type="button" class="ib" data-act="map-gps" style="width:40px;height:40px;background:var(--bg);border-radius:var(--rd);box-shadow:0 2px 8px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--t1);"><svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button></div><div style="position:absolute;top:60px;left:10px;display:flex;gap:5px;z-index:10;">'+chips+'</div></div><div class="bsheet" style="z-index:10;"><div class="grab"></div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span id="map-count" style="font-size:16px;font-weight:600;color:var(--t1)"></span><span class="chip n">거리순</span></div><div class="rows" id="map-list-rows" style="max-height:175px;overflow-y:auto"></div></div></div>';
+}
+function rJnl(){
+  var f=A.jFlt,df=A.jDate;
+  var _jnow=new Date(),_jyr=_jnow.getFullYear(),_jmo=_jnow.getMonth()+1,_jtd=_jnow.getDate();
+  var _jym=_jyr+'-'+String(_jmo).padStart(2,'0');
+  var _jlastD=new Date(_jyr,_jmo,0).getDate(),_jfirstW=new Date(_jyr,_jmo-1,1).getDay();
+  var _jyrCnt=LOGS.filter(function(l){return l.dt&&l.dt.indexOf(_jyr+'-')===0;}).length;
+  var fl=LOGS.filter(function(ev){var mf=f==='조황 좋음'?ev.rs!=='꽝':f==='꽝'?ev.rs==='꽝':true;var md=!df||ev.dt===_jym+'-'+String(df).padStart(2,'0');return mf&&md;});
+  var dl=LOGS.filter(function(l){return l.dt&&l.dt.indexOf(_jym)===0;}).map(function(l){return parseInt(l.dt.split('-')[2]);});
+  var segs=['전체','조황 좋음','꽝'].map(function(ft){return '<button class="'+(f===ft?'on':'')+'" data-jf="'+ft+'">'+ft+'</button>';}).join('');
+  var dh=['일','월','화','수','목','금','토'].map(function(d){return '<div class="cal-hd">'+d+'</div>';}).join('');
+  var blanks='';for(var b=0;b<_jfirstW;b++)blanks+='<div></div>';
+  var dc='';for(var d=1;d<=_jlastD;d++){var h=dl.indexOf(d)>=0,t=d===_jtd,sel=df===d;var cls='cd'+(sel?' sel':h?' has':t?' today':'');dc+='<div class="'+cls+'"'+(h?' data-cald="'+d+'"':'')+'>'+d+'</div>';}
+  var entries=fl.length===0?'<div style="text-align:center;padding:24px 0"><div style="font-size:36px;margin-bottom:8px">📭</div><p style="font-size:15px;color:var(--t3)">해당 날 일지가 없어요</p></div>':fl.map(function(ev){var fc=ev.fi.map(function(f2){return '<span class="chip n">'+f2.n+' '+f2.c+'마리</span>';}).join('');return '<div class="tle" data-lid="'+ev.id+'"><div class="tldate">'+ev.dt+'</div><div class="tlc"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><span style="font-size:16px;font-weight:600;color:var(--t1)">'+e(ev.pt)+'</span><span class="chip '+(ev.rs==='꽝'?'r':'g')+'">'+e(ev.rs)+'</span></div><div style="font-size:13px;color:var(--t3)">'+e(ev.wx)+' · '+e(ev.ti)+'</div>'+(ev.fi.length?'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:7px">'+fc+'</div>':'')+'<div style="font-size:14px;color:var(--t2);margin-top:8px;line-height:1.6">'+e(ev.nt)+'</div></div></div>';}).join('');
+  return '<div><div class="phd" style="display:flex;align-items:center;justify-content:space-between"><div><div class="eyebrow">총 '+LOGS.length+'건 · '+_jyr+'년 '+_jyrCnt+'건</div><h1>낚시 일지</h1></div><button class="ib" data-act="newlog">'+I.plus+'</button></div><div style="padding:10px 14px 0;display:flex;align-items:center;gap:8px"><div class="seg">'+segs+'</div>'+(df?'<span class="chip r" style="cursor:pointer" data-act="jdate-clear">'+df+'일 ×</span>':'')+'</div><div class="section"><div class="card"><div class="row-hr"><h2>'+_jyr+' · '+_jmo+'월</h2><span style="font-size:13px;color:var(--g);font-weight:600">'+dl.length+'회 출조</span></div><div class="cal">'+dh+blanks+dc+'</div></div></div><div style="padding:10px 14px 16px"><div class="tl">'+entries+'</div></div></div>';
+}
+function rStats(){
+  var pd=A.spd;
+  var _snow=new Date(),_syr=_snow.getFullYear();
+  var _sMoData=[0,0,0,0,0,0,0,0,0,0,0,0];
+  LOGS.forEach(function(l){if(l.dt&&l.dt.indexOf(_syr+'-')===0){var _sm=parseInt(l.dt.split('-')[1])-1;l.fi.forEach(function(f){_sMoData[_sm]+=(parseInt(f.c)||0);});}});
+  var _sTotalTrips=LOGS.length;
+  var _sTotalFish=LOGS.reduce(function(a,l){return a+l.fi.reduce(function(b,f){return b+(parseInt(f.c)||0);},0);},0);
+  var _spSet=new Set();LOGS.filter(function(l){return l.dt&&l.dt.indexOf(_syr+'-')===0;}).forEach(function(l){l.fi.forEach(function(f){_spSet.add(f.n);});});
+  var _yrSpCnt=_spSet.size;
+  var _spMap={};LOGS.forEach(function(l){l.fi.forEach(function(f){if(!_spMap[f.n])_spMap[f.n]=0;_spMap[f.n]+=(parseInt(f.c)||0);});});
+  var _spArr=Object.keys(_spMap).map(function(n){return {n:n,v:_spMap[n]};}).sort(function(a,b){return b.v-a.v;}).slice(0,5);
+  var _spColors=['var(--g)','var(--g2)','var(--r)','#B07010','var(--t3)'];
+  var spd2=_spArr.length>0?_spArr.map(function(s,i){return {n:s.n,v:s.v,c:_spColors[i]||'var(--t3)'};}):[{n:'감성돔',v:0,c:'var(--g)'}];
+  var _ptMap={};LOGS.forEach(function(l){if(!_ptMap[l.pt])_ptMap[l.pt]={cnt:0,fish:0,id:''};_ptMap[l.pt].cnt++;_ptMap[l.pt].fish+=l.fi.reduce(function(a,f){return a+(parseInt(f.c)||0);},0);var _fp=PTS.find(function(p){return p.nm===l.pt;});if(_fp)_ptMap[l.pt].id=_fp.id;});
+  var _ptArr=Object.keys(_ptMap).map(function(nm){return {nm:nm,cnt:_ptMap[nm].cnt,fish:_ptMap[nm].fish,id:_ptMap[nm].id};}).sort(function(a,b){return b.fish-a.fish;}).slice(0,3);
+  var top=_ptArr.length>0?_ptArr.map(function(r,i){return [String(i+1).padStart(2,'0'),r.nm,r.id||'',r.cnt,r.fish];}):[['01','기록 없음','',0,0]];
+  var _bestMoIdx=_sMoData.indexOf(Math.max.apply(null,_sMoData)),_bestMoCnt=_sMoData[_bestMoIdx];
+  var MD={'월별':_sMoData,'연간':_sMoData,'3년':[38,42,51,44,59,62,48,55,70,82,74,60]};var data=MD[pd]||MD['연간'];var mx=Math.max.apply(null,data)||1;
+  var segs=['월별','연간','3년'].map(function(p){return '<button class="'+(pd===p?'on':'')+'" data-spd="'+p+'">'+p+'</button>';}).join('');
+  var bars=data.map(function(v,k){return '<div class="bar '+(k===10?'r':k>=8&&k<=11?'g':'d')+'" style="height:'+Math.round((v/mx)*100)+'%"></div>';}).join('');
+  var ml=pd==='3년'?['24','','','','25','','','','','26','','']:['1','2','3','4','5','6','7','8','9','10','11','12'];
+  var _spMax=spd2.length>0?spd2[0].v:1;if(_spMax===0)_spMax=1;
+  var spH=spd2.map(function(s){return '<div style="cursor:pointer" data-sp="'+s.n+'"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:15px;font-weight:500;color:var(--t1)">'+s.n+'</span><span style="font-size:14px;color:var(--t2)">'+s.v+'마리</span></div><div class="gauge"><div class="fill" style="width:'+Math.round((s.v/_spMax)*100)+'%;background:'+s.c+'"></div></div></div>';}).join('');
+  var topH=top.map(function(r){return '<div class="row" data-pid="'+r[2]+'"><div style="width:28px;font-size:19px;font-weight:700;color:var(--g)">'+r[0]+'</div><div class="rt"><div class="a">'+r[1]+'</div><div class="b">'+r[3]+'회 출조</div></div><span style="font-size:21px;font-weight:700;color:var(--t1)">'+r[4]+'<span style="font-size:13px;font-weight:400;color:var(--t3)">미</span></span></div>';}).join('');
+  return '<div><div class="phd" style="display:flex;align-items:center;justify-content:space-between"><div><div class="eyebrow">'+_syr+' 한 해</div><h1>조황 통계</h1></div><button class="ib" data-act="settings">'+I.set+'</button></div><div style="padding:10px 14px 0"><div class="seg">'+segs+'</div></div><div style="padding:10px 14px 0"><div class="kpi-grid"><div class="kpi" data-go="jnl"><div class="lb">총 출조</div><div class="vl">'+_sTotalTrips+'<span class="u">회</span></div><div class="dl">▲ 작년 +9</div></div><div class="kpi" data-go="jnl"><div class="lb">총 마릿수</div><div class="vl">'+_sTotalFish+'<span class="u">미</span></div><div class="dl">▲ +23</div></div><div class="kpi"><div class="lb">새 어종</div><div class="vl">'+_yrSpCnt+'<span class="u">종</span></div><div class="dl dim">이번 연도</div></div><div class="kpi"><div class="lb">조황 점수</div><div class="vl">7.6<span class="u">/10</span></div><div class="dl">▲ 0.4</div></div></div></div><div class="section"><div class="card"><h2 class="card-h">'+(pd==='3년'?'연간':'월별')+' 마릿수</h2><div class="bars">'+bars+'</div><div class="blbs">'+ml.map(function(m){return '<span>'+m+'</span>';}).join('')+'</div><p style="font-size:13px;color:var(--t2);margin-top:8px">'+(_bestMoCnt>0?(_bestMoIdx+1)+'월 최고 <strong style="color:var(--g)">'+_bestMoCnt+'마리</strong>. 9–12월 시즌 최강.':'아직 기록이 없습니다.')+'</p></div></div><div class="section"><div class="card"><h2 class="card-h">어종 비중</h2><div style="display:flex;flex-direction:column;gap:11px">'+spH+'</div></div></div><div class="section" style="padding-bottom:16px"><div class="card"><h2 class="card-h">베스트 포인트 TOP 3</h2><div class="rows">'+topH+'</div></div></div></div>';
+}
+function openPt(id){
+  var p=PTS.find(function(x){return x.id===id;});if(!p)return;
+  var mx=Math.max.apply(null,p.mo);var fv=A.fav[p.id];
+  var bars=p.mo.map(function(v,k){return '<div class="bar '+(k>=8&&k<=11?'g':'d')+'" style="height:'+Math.round((v/mx)*100)+'%"></div>';}).join('');
+  var ml=['1','2','3','4','5','6','7','8','9','10','11','12'].map(function(m){return '<span>'+m+'</span>';}).join('');
+  var spR=p.sp.map(function(s,i){var seas=['9–12월','10–3월','10–12월'];var cnts=[18,12,8];return '<div class="row" data-sp="'+e(s)+'"><div class="ri">'+I.fish+'</div><div class="rt"><div class="a">'+e(s)+'</div><div class="b">제철 '+(seas[i]||'연중')+' · 탭하면 상세</div></div><span style="font-size:19px;font-weight:700;color:var(--t1)">'+(cnts[i]||6)+'<span style="font-size:12px;font-weight:400;color:var(--t3)">건</span></span></div>';}).join('');
+  var rl=LOGS.filter(function(l){return l.pt===p.nm;});
+  var rlH=rl.length?'<div class="section"><div class="card"><h2 class="card-h">이 포인트 조황 기록</h2><div class="rows">'+rl.slice(0,3).map(function(ev){return '<div class="row" data-lid-pt="'+ev.id+'"><div class="rt"><div class="a">'+e(ev.dt)+'</div><div class="b">'+e(ev.wx)+' · '+e(ev.ti)+'</div></div><span class="chip '+(ev.rs==='꽝'?'r':'g')+'">'+e(ev.rs)+'</span></div>';}).join('')+'</div></div></div>':'';
+  var td=getTideInfo(p);
+  var s4=[['수심',p.dp,I.wav],['수온','--',I.thm],['물때',td.tideType,I.anc],['만조',td.nextHT,I.moon]];
+  var s4H=s4.map(function(it,i){return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 4px;'+(i<3?'border-right:1px solid var(--bd)':'')+(i===3?';cursor:pointer':'')+'" '+(i===3?'data-act="tide" data-tidept="'+p.id+'"':'')+'><div style="color:var(--g);display:flex;align-items:center">'+it[2]+'</div><span style="font-size:15px;font-weight:700;color:var(--t1)">'+it[1]+'</span><span style="font-size:12px;color:var(--t3)">'+it[0]+'</span></div>';}).join('');
+  showOv('ov-pt','<div class="nav"><button class="nb" data-close="ov-pt">'+I.back+'</button><div class="nav-tx"><p>'+e(p.rg)+' · '+p.ds+'km</p><h1>'+e(p.nm)+'</h1></div><button class="ib" id="favbtn" data-favid="'+p.id+'" style="color:'+(fv?'var(--y)':'var(--t3)')+'">'+( fv?I.starf:I.star)+'</button></div><div class="pg"><div style="height:120px;background:linear-gradient(180deg,var(--g3),var(--g4));position:relative;overflow:hidden"><svg viewBox="0 0 100 50" preserveAspectRatio="none" width="100%" height="100%" style="position:absolute;bottom:0"><path d="M0,35 C20,28 40,38 60,32 C80,26 92,36 100,30 L100,50 L0,50 Z" fill="rgba(15,110,86,.2)"/><path d="M0,42 C20,36 40,44 60,39 C80,34 93,42 100,38 L100,50 L0,50 Z" fill="rgba(15,110,86,.3)"/></svg><div style="position:absolute;bottom:10px;left:12px;display:flex;gap:5px"><span class="chip n">'+e(p.tp)+'</span><span class="chip g">★ '+p.rt+'</span></div></div><div style="display:grid;grid-template-columns:repeat(4,1fr);background:var(--bg2);border-bottom:1px solid var(--bd)">'+s4H+'</div><div class="section"><div class="card"><h2 class="card-h">시즌별 조황</h2><div class="bars">'+bars+'</div><div class="blbs">'+ml+'</div><p style="font-size:13px;color:var(--t2);margin-top:8px">제철은 <strong style="color:var(--g)">9–12월</strong>. 11월 조황 최상.</p></div></div><div class="section"><div class="card"><h2 class="card-h">주요 어종</h2><div class="rows">'+spR+'</div></div></div>'+rlH+'<div style="padding:12px 14px 16px;display:flex;gap:8px"><button class="btn pri" data-logpt="'+e(p.nm)+'" style="flex:1">'+I.edit+'일지 쓰기</button><button class="btn sec" onclick="startPtEdit(\''+p.id+'\')" style="flex:0 0 auto;padding:0 16px">📍 위치 수정</button></div></div>');
+}
+function toggleFav(id){A.fav[id]=A.fav[id]?0:1;var btn=document.getElementById('favbtn');if(btn){btn.style.color=A.fav[id]?'var(--y)':'var(--t3)';btn.innerHTML=A.fav[id]?I.starf:I.star;}saveFavs();showToast(A.fav[id]?'즐겨찾기 추가':'즐겨찾기 제거');}
+function calcMoonPhase(date){var knownNewMoon=new Date(2000,0,6);var daysSince=(date-knownNewMoon)/(1000*60*60*24);var cycle=29.530588853;var phase=((daysSince%cycle)+cycle)%cycle;if(phase<1.5)return '🌑 삭';if(phase<5)return '🌒 초승달';if(phase<8.5)return '🌒 초승달';if(phase<10)return '🌓 상현달';if(phase<13)return '🌓 상현달';if(phase<15.5)return '🌔 보름 전';if(phase<17)return '🌕 보름';if(phase<19.5)return '🌖 보름 후';if(phase<22.5)return '🌗 하현달';if(phase<25)return '🌗 하현달';if(phase<28)return '🌘 그믐';return '🌑 삭';}
+function fetchEnvData(lat,lng){A.seaFetching=true;var moonStr=calcMoonPhase(new Date());var moonEl=document.getElementById('env-moon');if(moonEl)moonEl.innerHTML=I.moon+' '+moonStr;var wUrl='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lng+'&current=temperature_2m,wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=Asia%2FSeoul';var mUrl='https://marine-api.open-meteo.com/v1/marine?latitude='+lat+'&longitude='+lng+'&current=wave_height,sea_surface_temperature&timezone=Asia%2FSeoul';var wDir=['북','북동','동','남동','남','남서','서','북서'];function dirStr(deg){return wDir[Math.round(((deg||0)%360)/45)%8];}Promise.all([fetch(wUrl).then(function(r){return r.json();}),fetch(mUrl).then(function(r){return r.json();})]).then(function(res){var wd=res[0];var md=res[1];var cur=wd.current||{};var mcur=md.current||{};var tp=cur.temperature_2m!=null?cur.temperature_2m.toFixed(1)+'°C':'--';var wi=cur.wind_speed_10m!=null?(dirStr(cur.wind_direction_10m)+' '+cur.wind_speed_10m.toFixed(1)+'m/s'):'--';var wt=mcur.sea_surface_temperature!=null?mcur.sea_surface_temperature.toFixed(1)+'°C':'--';var wv=mcur.wave_height!=null?mcur.wave_height.toFixed(1)+'m':'--';A.seaData={tp:tp,wi:wi,wt:wt,wv:wv,moon:moonStr};A.seaFetching=false;var tpEl=document.getElementById('env-tp');if(tpEl)tpEl.innerHTML=I.thm+' 기온 '+tp;var wtEl=document.getElementById('env-wt');if(wtEl)wtEl.innerHTML=I.drp+' 수온 '+wt;var wiEl=document.getElementById('env-wi');if(wiEl)wiEl.innerHTML=I.wnd+' 바람 '+wi;var wvEl=document.getElementById('env-wv');if(wvEl)wvEl.innerHTML=I.wav+' 파고 '+wv;}).catch(function(){A.seaFetching=false;A.seaData={tp:'--',wi:'--',wt:'--',wv:'--',moon:moonStr};var tpEl=document.getElementById('env-tp');if(tpEl)tpEl.innerHTML=I.thm+' 기온 --';var wtEl=document.getElementById('env-wt');if(wtEl)wtEl.innerHTML=I.drp+' 수온 --';var wiEl=document.getElementById('env-wi');if(wiEl)wiEl.innerHTML=I.wnd+' 바람 --';var wvEl=document.getElementById('env-wv');if(wvEl)wvEl.innerHTML=I.wav+' 파고 --';});}
+function openLog(pt){if(pt&&!A.lf.pt)A.lf.pt=pt;A.seaData=null;rebuildLog();setTimeout(function(){fetchEnvData(A.lf.lat||35.5049,A.lf.lng||129.4159);},200);}
+function rebuildLog(){
+  var sps=['갈치','감성돔','갑오징어','고등어','광어','농어','대구','도다리','돌돔','무늬오징어','문어','민어','방어','벵에돔','볼락','부시리','열기','우럭','전어','쥐노래미','쭈꾸미','참돔'];
+  var f=A.lf,fish=A.lfi;
+  var _inp='padding:10px 8px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rd);font-size:16px;font-family:var(--F);color:var(--t1);outline:none;width:100%;box-sizing:border-box;text-align:center;font-weight:600;';
+  var fishRows='<div style="display:flex;gap:7px;margin-bottom:5px"><div style="flex:2;font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;padding-left:2px">어종</div><div style="flex:1;font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;text-align:center">마릿수</div><div style="flex:1.2;font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;text-align:center">크기</div>'+(fish.length>1?'<div style="width:28px"></div>':'')+'</div>'+fish.map(function(row,idx){var isCustom=(row.s!==''&&sps.indexOf(row.s)===-1);var selVal=isCustom?'직접입력':row.s;var opts=sps.map(function(s){return '<option'+(selVal===s?' selected':'')+'>'+s+'</option>';}).join('')+'<option'+(selVal==='직접입력'?' selected':'')+'>직접입력</option>';return '<div style="display:flex;gap:7px;margin-bottom:9px;align-items:center"><div class="fl" style="flex:2;margin:0"><select data-fi-s="'+idx+'">'+opts+'</select><input data-fi-custom="'+idx+'" value="'+(isCustom?e(row.s):'')+'" placeholder="어종명 직접 입력" style="margin-top:4px;'+(isCustom?'':'display:none')+'"></div><div style="flex:1;position:relative"><input type="number" inputmode="numeric" value="'+e(row.c)+'" placeholder="0" style="'+_inp+'padding-right:30px;" data-fi-c="'+idx+'"><span style="position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:var(--g);pointer-events:none;user-select:none">마리</span></div><div style="flex:1.2;position:relative"><input type="number" inputmode="decimal" value="'+e(row.sz)+'" placeholder="0" style="'+_inp+'padding-right:24px;" data-fi-sz="'+idx+'"><span style="position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:var(--t3);pointer-events:none;user-select:none">cm</span></div>'+(fish.length>1?'<button class="ib" style="flex-shrink:0;color:var(--r)" data-fi-del="'+idx+'">'+I.del+'</button>':'')+'</div>';}).join('');
+  var grOpts=['노싱커','다운샷','루어낚시','민장대','바다루어','쇼어지깅','에깅','원투낚시','지깅','찌낚시','캐롤라이나','타이라바','텍사스리그','포핑'];
+  var grIsCustom=!!(f.gr&&grOpts.indexOf(f.gr)===-1);var grSelVal=grIsCustom?'직접입력':(f.gr||'');
+  var grOptHtml='<option value="">채비 선택</option>'+grOpts.map(function(v){return '<option'+(grSelVal===v?' selected':'')+'>'+v+'</option>';}).join('')+'<option'+(grIsCustom?' selected':'')+'>직접입력</option>';
+  var baOpts=['갯지렁이','떡밥','메탈지그','미노우','바이브레이션','새우','스피너베이트','에기','웜','집어제','참붕어','청갯지렁이','크릴','크릴 + 집어제','탑워터'];
+  var baIsCustom=!!(f.ba&&baOpts.indexOf(f.ba)===-1);var baSelVal=baIsCustom?'직접입력':(f.ba||'');
+  var baOptHtml='<option value="">미끼/루어 선택</option>'+baOpts.map(function(v){return '<option'+(baSelVal===v?' selected':'')+'>'+v+'</option>';}).join('')+'<option'+(baIsCustom?' selected':'')+'>직접입력</option>';
+  var el=document.getElementById('ov-log');
+  var tpOpts=['방파제','갯바위','항구','선상','방조제','기타'].map(function(tp){return '<option'+(f.tp===tp?' selected':'')+'>'+tp+'</option>';}).join('');
+  var boatOpts='<option value="">업체 선택</option>'+BOATS.map(function(b){return '<option value="'+e(b.nm)+'"'+(f.boat===b.nm?' selected':'')+'>'+e(b.nm)+' ('+e(b.port)+' · '+b.price+'만원)</option>';}).join('');
+  var boatField=f.tp==='선상'?'<div class="fl"><label>선상업체</label><select id="lf-boat">'+boatOpts+'</select></div>':'';
+  var coRows=A.lco.map(function(row,idx){var opts='<option value="">혼자 (선택안함)</option>'+A.friends.map(function(fr){return '<option'+(row.n===fr?' selected':'')+'>'+e(fr)+'</option>';}).join('');return '<div style="display:flex;gap:7px;margin-bottom:9px;align-items:center"><div class="fl" style="flex:1;margin:0"><select data-co-n="'+idx+'">'+opts+'</select></div>'+(A.lco.length>1?'<button class="ib" style="flex-shrink:0;color:var(--r)" data-co-del="'+idx+'">'+I.del+'</button>':'')+'</div>';}).join('');
+  var mkList=f.markers.length?'<div id="mk-list" style="margin-top:8px">'+f.markers.map(function(m,i){return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd)"><span style="width:22px;height:22px;border-radius:50%;background:#ef4444;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</span><span style="flex:1;font-size:14px;color:var(--t1)">'+e(m.nm||m.lat.toFixed(4)+', '+m.lng.toFixed(4))+'</span><button class="ib" style="flex-shrink:0;color:var(--r);padding:2px" data-mk-del="'+i+'">'+I.del+'</button></div>';}).join('')+'</div>':'';
+  var phCnt=(f.photos||[]).length;
+  var photosHTML=(f.photos||[]).map(function(p,idx){return '<div class="pc" style="background:url('+p+') center/cover no-repeat;position:relative"><button class="ib" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center" data-ph-del="'+idx+'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';}).join('');
+  if(phCnt<8) photosHTML+='<div class="pc" data-act="photo">'+(phCnt===0?I.cam:I.plus)+'</div>';
+  var locSection='<div class="section"><div class="card"><div style="display:flex;align-items:center;justify-content:space-between"><h2 class="card-h" style="margin:0">위치</h2><span class="chip '+(f.markers.length?'g':'n')+'">'+(f.markers.length?f.markers.length+'개 포인트':'포인트 없음')+'</span></div><div class="loc-bar" style="margin-top:10px"><div class="fl" style="flex:1;margin:0"><input id="lf-addr" value="'+e(f.addr)+'" placeholder="주소 검색"></div><button type="button" id="loc-search-btn"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg></button><button type="button" id="loc-gps-btn" title="내 위치"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button><button type="button" id="loc-add-btn">📌 포인트 추가</button></div><div id="log-map"></div><div class="loc-coord" id="loc-coord" style="font-size:13px;color:var(--t3);margin-top:6px">📍 지도를 탭하거나 포인트 추가 버튼을 클릭하세요</div>'+mkList+'</div></div>';
+  var html='<div class="nav"><button class="nb" id="log-back">'+I.back+'</button><div class="nav-tx"><h1>새 일지</h1></div><button class="btn pri" id="log-save" style="width:auto;padding:8px 16px;font-size:14px">저장</button></div><div class="pg"><div class="section"><div class="card"><div class="fl" style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;margin-bottom:10px"><div style="min-width:0"><label>날짜</label><input type="date" id="lf-dt" value="'+e(f.dt)+'" style="padding:10px 4px"></div><div style="min-width:0"><label>시작</label><input type="time" id="lf-st" value="'+e(f.st)+'" style="padding:10px 4px"></div><div style="min-width:0"><label>종료</label><input type="time" id="lf-et" value="'+e(f.et||'10:00')+'" style="padding:10px 4px"></div></div><div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:10px"><div class="fl" style="margin:0"><label>포인트</label><input id="lf-pt" value="'+e(f.pt)+'" placeholder="포인트명"></div><div class="fl" style="margin:0"><label>낚시 유형</label><select id="lf-tp">'+tpOpts+'</select></div></div>'+(f.tp==='선상'?'<div class="fl" style="margin-bottom:10px"><label>선상업체</label><select id="lf-boat">'+boatOpts+'</select></div>':'')+'</div></div>'+locSection+'<div class="section"><div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px"><h2 class="card-h" style="margin:0">동행</h2><button class="btn sec" id="add-co" style="width:auto;padding:6px 12px;font-size:13px">'+I.plus+'추가</button></div>'+coRows+'</div></div><div class="section"><div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px"><h2 class="card-h" style="margin:0">어종 · 마릿수</h2><button class="btn sec" id="add-fish" style="width:auto;padding:6px 12px;font-size:13px">'+I.plus+'추가</button></div>'+fishRows+'</div></div><div class="section"><div class="card"><h2 class="card-h">채비</h2><div class="fl" style="margin:0"><select data-gr-sel="">'+grOptHtml+'</select><input id="lf-gr" value="'+e(f.gr||'')+'" placeholder="직접 입력..." style="margin-top:4px;'+(grIsCustom?'':'display:none')+'"></div></div></div><div class="section"><div class="card"><h2 class="card-h">미끼 / 루어</h2><div class="fl" style="margin:0"><select data-ba-sel="">'+baOptHtml+'</select><input id="lf-ba" value="'+e(f.ba)+'" placeholder="직접 입력..." style="margin-top:4px;'+(baIsCustom?'':'display:none')+'"></div></div></div><div class="section"><div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><h2 class="card-h" style="margin:0">사진</h2><span style="font-size:13px;color:var(--t3)">'+phCnt+' / 8</span></div><div class="pgrid">'+photosHTML+'</div></div></div><div class="section"><div class="card"><h2 class="card-h">메모</h2><div class="fl" style="margin:0"><textarea id="lf-nt" rows="4" placeholder="오늘의 조황, 참고사항을 기록하세요...">'+e(f.nt)+'</textarea></div></div></div><div class="section"><div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px"><h2 class="card-h" style="margin:0">자동 환경 정보</h2><span class="chip g">자동수집</span></div><div class="env-row"><span class="env-chip" id="env-tp">'+I.thm+' 기온 수집중...</span><span class="env-chip" id="env-wt">'+I.drp+' 수온 수집중...</span><span class="env-chip" id="env-wi">'+I.wnd+' 바람 수집중...</span><span class="env-chip" id="env-wv">'+I.wav+' 파고 수집중...</span><span class="env-chip">'+I.anc+' '+(function(){var _rpt={lat:A.lf.lat||35.5049,lng:A.lf.lng||129.4159};var _rtd=getTideInfo(_rpt);return _rtd.muldae+'물 '+_rtd.tideType;})()+'</span><span class="env-chip" id="env-moon">'+I.moon+' 달 수집중...</span></div></div></div><div style="padding:12px 14px 16px"><button class="btn pri" id="log-save2">'+I.ok+' 일지 저장하기</button></div></div>';
+  if(!el.classList.contains('show')){el.innerHTML=html;requestAnimationFrame(function(){el.classList.add('show');});setTimeout(initLogMap,200);}else{el.innerHTML=html;setTimeout(initLogMap,50);}
+}
+function initLogMap(){
+  var c=document.getElementById('log-map');if(!c)return;
+  if(logMap){logMap.remove();logMap=null;}
+  logMapMarkers=[];
+  var lt=A.lf.lat||35.5049,ln=A.lf.lng||129.4159;
+  logMap=L.map('log-map',{zoomControl:false,attributionControl:false}).setView([lt,ln],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(logMap);
+  PTS.forEach(function(p){
+    var clr=p.tp==='선상'?'#3b82f6':p.tp==='갯바위'?'#f59e0b':'#22c55e';
+    var cm=L.circleMarker([p.lat,p.lng],{radius:7,fillColor:clr,color:'#fff',weight:2,opacity:1,fillOpacity:0.85}).addTo(logMap);
+    cm.bindTooltip(p.nm,{permanent:false,direction:'top',offset:[0,-8]});
+    cm.on('click',function(ev){L.DomEvent.stopPropagation(ev);addLogMarker(p.lat,p.lng,p.nm);});
+  });
+  A.lf.markers.forEach(function(m,i){drawLogMarker(m,i);});
+  logMap.on('click',function(ev){addLogMarker(ev.latlng.lat,ev.latlng.lng,'');});
+  // 내 위치 표시용 자츠마커 (파란 점)
+  var gpsDot=null;
+  var sb=document.getElementById('loc-search-btn');
+  if(sb)sb.addEventListener('click',function(){searchLogAddr();});
+  // GPS 버튼: 내 위치로 지도 이동만 (포인트 추가 안함)
+  var gb=document.getElementById('loc-gps-btn');
+  if(gb)gb.addEventListener('click',function(){if(navigator.geolocation){navigator.geolocation.getCurrentPosition(function(pos){var la=pos.coords.latitude,lo=pos.coords.longitude;A.lf.lat=la;A.lf.lng=lo;A.myLat=la;A.myLng=lo;updatePTSDist();logMap.setView([la,lo],15);if(gpsDot)logMap.removeLayer(gpsDot);gpsDot=L.circleMarker([la,lo],{radius:10,fillColor:'#3b82f6',color:'#fff',weight:3,opacity:1,fillOpacity:0.6}).addTo(logMap);gpsDot.bindTooltip('내 위치',{permanent:true,direction:'top',offset:[0,-10]});fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+la+'&lon='+lo+'&zoom=16').then(function(r){return r.json();}).then(function(d){if(d&&d.display_name){var ad=d.display_name.split(',').slice(0,3).join(',');A.lf.addr=ad;var ai=document.getElementById('lf-addr');if(ai)ai.value=ad;}});var ci=document.getElementById('loc-coord');if(ci)ci.textContent='📍 내 위치: '+la.toFixed(4)+', '+lo.toFixed(4)+' (포인트 추가 버튼을 누르세요)';fetchEnvData(la,lo);showToast('내 위치로 이동됨');},function(){var rc=REGION_COORDS[A.userRegion]||[35.490,129.420];logMap.setView(rc,12);showToast('GPS 사용 불가 — '+A.userRegion+' 기준으로 이동합니다');});}else showToast('GPS 미지원');});
+  // 포인트 추가 버튼: 현재 지도 중심을 마커로 추가
+  var ab=document.getElementById('loc-add-btn');
+  if(ab)ab.addEventListener('click',function(){var ct=logMap.getCenter();addLogMarker(ct.lat,ct.lng,'');});
+  var ai=document.getElementById('lf-addr');
+  if(ai)ai.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();sb.click();}});
+}
+function drawLogMarker(m,idx){
+  var ic=L.divIcon({className:'',html:'<div style="width:26px;height:26px;background:#ef4444;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">'+(idx+1)+'</div>',iconSize:[26,26],iconAnchor:[13,13]});
+  var mk=L.marker([m.lat,m.lng],{icon:ic,draggable:true}).addTo(logMap);
+  mk.bindTooltip(m.nm||(idx+1)+'번 포인트',{permanent:false,direction:'top',offset:[0,-14]});
+  mk.on('dragend',function(){var p=mk.getLatLng();A.lf.markers[idx].lat=p.lat;A.lf.markers[idx].lng=p.lng;rebuildLog();});
+  logMapMarkers.push(mk);
+}
+function addLogMarker(lat,lng,nm){
+  if(!nm){
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=16').then(function(r){return r.json();}).then(function(d){
+      var name=d&&d.display_name?d.display_name.split(',').slice(0,2).join(','):'';
+      A.lf.markers.push({lat:lat,lng:lng,nm:name});
+      rebuildLog();
+    }).catch(function(){A.lf.markers.push({lat:lat,lng:lng,nm:''});rebuildLog();});
+  } else {
+    A.lf.markers.push({lat:lat,lng:lng,nm:nm});
+    rebuildLog();
+  }
+  showToast('포인트 '+(A.lf.markers.length)+' 추가됨');
+}
+function searchLogAddr(){
+  var inp=document.getElementById('lf-addr');if(!inp||!inp.value.trim())return;
+  var q=inp.value.trim();
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=1&countrycodes=kr')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d&&d.length>0){var la=parseFloat(d[0].lat),lo=parseFloat(d[0].lon);var nm=d[0].display_name.split(',').slice(0,2).join(',');addLogMarker(la,lo,nm);logMap.setView([la,lo],15);inp.value='';}
+      else showToast('검색 결과 없음');
+    }).catch(function(){showToast('검색 실패');});
+}
+function openQuickLog(){
+  A.qk={lat:35.5049,lng:129.4159,pt:'',addr:''};
+  showOv('ov-quick','<div class="nav"><button class="nb" data-close="ov-quick">'+I.back+'</button><div class="nav-tx"><h1>오늘의 낚시 기록</h1></div></div><div class="pg"><div class="section"><div class="card"><h2 class="card-h">📍 지도에서 낚시한 위치를 선택하세요</h2><div class="loc-bar"><div class="fl" style="flex:1;margin:0"><input id="qk-addr" placeholder="주소 검색"></div><button type="button" id="qk-search-btn"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg></button><button type="button" id="qk-gps-btn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button></div><div id="quick-map"></div><div class="loc-coord" id="qk-coord">위치를 선택하세요</div></div></div><div class="section"><div class="card"><div class="fl"><label>포인트명</label><input id="qk-pt" placeholder="포인트명을 입력하거나 지도 마커를 탭하세요"></div><div class="fl" style="margin-bottom:0"><label>한줄 메모</label><input id="qk-memo" placeholder="오늘의 한마디 (선택사항)"></div></div></div><div style="padding:12px 14px 16px"><button class="btn pri" id="qk-save">'+I.ok+' 오늘의 낚시 기록 저장</button></div></div>');
+  setTimeout(initQuickMap,200);
+}
+function initQuickMap(){
+  var c=document.getElementById('quick-map');if(!c)return;
+  if(quickMap){quickMap.remove();quickMap=null;}
+  var lt=A.qk.lat,ln=A.qk.lng;
+  quickMap=L.map('quick-map',{zoomControl:false,attributionControl:false}).setView([lt,ln],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(quickMap);
+  // 낚시 포인트 마커 표시
+  PTS.forEach(function(p){
+    var clr=p.tp==='선상'?'#3b82f6':p.tp==='갯바위'?'#f59e0b':'#22c55e';
+    var cm=L.circleMarker([p.lat,p.lng],{radius:8,fillColor:clr,color:'#fff',weight:2,opacity:1,fillOpacity:0.85}).addTo(quickMap);
+    cm.bindTooltip(p.nm,{permanent:false,direction:'top',offset:[0,-8]});
+    cm.on('click',function(ev){
+      L.DomEvent.stopPropagation(ev);
+      A.qk.lat=p.lat;A.qk.lng=p.lng;A.qk.pt=p.nm;
+      quickMarker.setLatLng([p.lat,p.lng]);
+      var pi=document.getElementById('qk-pt');if(pi)pi.value=p.nm;
+      var ci=document.getElementById('qk-coord');if(ci)ci.textContent='📍 '+p.lat.toFixed(4)+', '+p.lng.toFixed(4);
+      showToast(p.nm+' 선택됨');
+    });
+  });
+  // 내 위치 마커
+  var myIcon=L.divIcon({className:'',html:'<div style="width:30px;height:30px;background:#ef4444;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;background:#fff;border-radius:50%"></div></div>',iconSize:[30,30],iconAnchor:[15,15]});
+  quickMarker=L.marker([lt,ln],{draggable:true,icon:myIcon,zIndexOffset:1000}).addTo(quickMap);
+  quickMarker.bindTooltip('내 위치',{permanent:false,direction:'top',offset:[0,-18]});
+  quickMarker.on('dragend',function(){var p=quickMarker.getLatLng();A.qk.lat=p.lat;A.qk.lng=p.lng;var ci=document.getElementById('qk-coord');if(ci)ci.textContent='📍 '+p.lat.toFixed(4)+', '+p.lng.toFixed(4);qkReverseGeo(p.lat,p.lng);});
+  quickMap.on('click',function(ev){var p=ev.latlng;quickMarker.setLatLng(p);A.qk.lat=p.lat;A.qk.lng=p.lng;var ci=document.getElementById('qk-coord');if(ci)ci.textContent='📍 '+p.lat.toFixed(4)+', '+p.lng.toFixed(4);qkReverseGeo(p.lat,p.lng);});
+  // 주소 검색 버튼
+  var sb=document.getElementById('qk-search-btn');
+  if(sb)sb.addEventListener('click',function(){var inp=document.getElementById('qk-addr');if(!inp||!inp.value.trim())return;fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(inp.value.trim())+'&limit=1&countrycodes=kr').then(function(r){return r.json();}).then(function(d){if(d&&d.length>0){var la=parseFloat(d[0].lat),lo=parseFloat(d[0].lon);A.qk.lat=la;A.qk.lng=lo;A.qk.addr=d[0].display_name.split(',').slice(0,3).join(',');quickMarker.setLatLng([la,lo]);quickMap.setView([la,lo],15);var ci=document.getElementById('qk-coord');if(ci)ci.textContent='📍 '+la.toFixed(4)+', '+lo.toFixed(4);inp.value=A.qk.addr;showToast('위치 설정됨');}else showToast('검색 결과 없음');}).catch(function(){showToast('검색 실패');});});
+  // GPS 버튼
+  var gb=document.getElementById('qk-gps-btn');
+  if(gb)gb.addEventListener('click',function(){if(navigator.geolocation){navigator.geolocation.getCurrentPosition(function(pos){var la=pos.coords.latitude,lo=pos.coords.longitude;A.qk.lat=la;A.qk.lng=lo;quickMarker.setLatLng([la,lo]);quickMap.setView([la,lo],15);var ci=document.getElementById('qk-coord');if(ci)ci.textContent='📍 '+la.toFixed(4)+', '+lo.toFixed(4);qkReverseGeo(la,lo);},function(){showToast('위치 정보를 가져올 수 없습니다');});}else showToast('GPS 미지원');});
+  // Enter 검색
+  var ai=document.getElementById('qk-addr');
+  if(ai)ai.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();sb.click();}});
+  // 저장 버튼
+  var sv=document.getElementById('qk-save');
+  if(sv)sv.addEventListener('click',function(){saveQuickLog();});
+}
+function qkReverseGeo(lat,lng){
+  fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=16')
+    .then(function(r){return r.json();})
+    .then(function(d){if(d&&d.display_name){A.qk.addr=d.display_name.split(',').slice(0,3).join(',');var inp=document.getElementById('qk-addr');if(inp)inp.value=A.qk.addr;}}).catch(function(){});
+}
+function saveQuickLog(){
+  var pt=document.getElementById('qk-pt');
+  var memo=document.getElementById('qk-memo');
+  var nm=pt?pt.value.trim():'';
+  if(!nm){showToast('포인트명을 입력하세요');return;}
+  var today=new Date();var ds=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  var nid='l'+Date.now();
+  LOGS.unshift({id:nid,dt:ds,pt:nm,rg:A.qk.addr||'',rs:'+0미',wx:'맑음',ti:'06:00–10:00',fi:[],nt:memo?memo.value.trim():'📍 지도에서 빠른 기록',lat:A.qk.lat,lng:A.qk.lng});
+  saveLogs();hideOv('ov-quick');render();
+  showToast('📍 '+nm+' 기록 완료!');
+}
+function openLD(id){
+  var ev=LOGS.find(function(x){return x.id===id;});if(!ev)return;
+  var pt=PTS.find(function(p){return p.nm===ev.pt;});
+  var fishH=ev.fi.length?'<div class="section"><div class="card"><h2 class="card-h">조황</h2><div class="rows">'+ev.fi.map(function(f){return '<div class="row nd"><div class="ri">'+I.fish+'</div><div class="rt"><div class="a">'+e(f.n)+'</div><div class="b">'+e(f.s)+'</div></div><span style="font-size:23px;font-weight:700;color:var(--t1)">'+f.c+'<span style="font-size:13px;font-weight:400;color:var(--t3)">마리</span></span></div>';}).join('')+'</div></div></div>':'<div class="section"><div class="card" style="text-align:center;padding:22px"><div style="font-size:38px;margin-bottom:9px">🎣</div><p style="font-size:16px;font-weight:600;color:var(--t1)">이 날은 꽝이었어요</p><p style="font-size:14px;color:var(--t3);margin-top:5px">다음 출조엔 더 좋은 소식이!</p></div></div>';
+  showOv('ov-ld','<div class="nav"><button class="nb" data-close="ov-ld">'+I.back+'</button><div class="nav-tx"><p>'+e(ev.dt)+'</p><h1>'+e(ev.pt)+'</h1></div><span class="chip '+(ev.rs==='꽝'?'r':'g')+'">'+e(ev.rs)+'</span></div><div class="pg">'+fishH+'<div class="section"><div class="card"><h2 class="card-h">환경 정보</h2><div class="info-grid"><div class="ic"><div class="ik">기온</div><div class="iv">'+e(ev.tp||'14.2°C')+'</div></div><div class="ic"><div class="ik">수온</div><div class="iv">'+e(ev.wt||'16.4°C')+'</div></div><div class="ic"><div class="ik">바람</div><div class="iv">'+e(ev.wi||'E 3m/s')+'</div></div><div class="ic"><div class="ik">파고</div><div class="iv">'+e(ev.wv||'0.6m')+'</div></div><div class="ic"><div class="ik">물때</div><div class="iv">'+e(ev.ti||'중조')+'</div></div><div class="ic"><div class="ik">날씨</div><div class="iv">'+e(ev.wx?ev.wx.split('·')[0].trim():'맑음')+'</div></div><div class="ic"><div class="ik">달</div><div class="iv">'+e(ev.moon||calcMoonPhase(new Date(ev.dt||Date.now())))+'</div></div></div></div></div><div class="section"><div class="card"><h2 class="card-h">메모</h2><p style="font-size:15px;line-height:1.7;color:var(--t2)">'+e(ev.nt)+'</p></div></div>'+(pt?'<div class="section"><div class="card"><h2 class="card-h">관련 포인트</h2><div class="rows"><div class="row" data-pid-ld="'+pt.id+'"><div class="ri">'+I.pin+'</div><div class="rt"><div class="a">'+e(pt.nm)+'</div><div class="b">'+e(pt.rg)+' · ★ '+pt.rt+'</div></div>'+I.chv+'</div></div></div></div>':'')+'<div style="padding:12px 14px 4px;display:flex;gap:8px"><button class="btn sec" data-editlog="'+ev.id+'" style="flex:1">'+I.edit+' 수정</button><button class="btn pri" data-relog="'+e(ev.pt)+'" style="flex:1">'+I.edit+' 재출조</button></div>'
+    +'<div style="padding:4px 14px 16px"><button class="btn" data-deletelog="'+ev.id+'" style="width:100%;background:transparent;border:1.5px solid #ef4444;color:#ef4444;font-size:14px;font-weight:600">🗑 이 일지 삭제</button></div></div>');
+}
+function openBoat(id){
+  var bt=BOATS.find(function(x){return x.id===id;});if(!bt)return;
+  var spR=bt.sp.map(function(s){return '<div class="row" data-sp="'+e(s)+'"><div class="ri bl">'+I.fish+'</div><div class="rt"><div class="a">'+e(s)+'</div><div class="b">탭하면 어종 상세</div></div>'+I.chv+'</div>';}).join('');
+  var gearH=bt.gear.map(function(g){return '<span class="chip bl">'+e(g)+'</span>';}).join('');
+  var schH=bt.schedule.map(function(sc){var d=sc.dt.split('-');return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd)"><div><span style="font-size:15px;font-weight:600;color:var(--t1)">'+d[1]+'/'+d[2]+'</span><span style="font-size:13px;color:var(--t3);margin-left:6px">'+(sc.avail>0?sc.avail+'/'+bt.seats+'석':'마감')+'</span></div>'+(sc.avail>0?'<button class="btn pri" data-book="'+sc.dt+'" style="width:auto;padding:6px 14px;font-size:13px">예약</button>':'<span class="chip r">마감</span>')+'</div>';}).join('');
+  var s4=[['출항지',bt.port,I.anc],['출항',bt.time,I.moon],['정원',bt.seats+'명',I.fish],['요금',bt.price+'만',I.boat]];
+  var s4H=s4.map(function(it,i){return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 4px;'+(i<3?'border-right:1px solid var(--bd)':'')+'"><div style="color:var(--bl);display:flex;align-items:center">'+it[2]+'</div><span style="font-size:15px;font-weight:700;color:var(--t1)">'+it[1]+'</span><span style="font-size:12px;color:var(--t3)">'+it[0]+'</span></div>';}).join('');
+  showOv('ov-boat','<div class="nav"><button class="nb" data-close="ov-boat">'+I.back+'</button><div class="nav-tx"><p>'+e(bt.rg)+' · '+e(bt.port)+'</p><h1>'+e(bt.nm)+'</h1></div><span class="chip '+(bt.avail>0?'bl':'r')+'">'+(bt.avail>0?'잔여 '+bt.avail+'석':'마감')+'</span></div><div class="pg"><div style="height:110px;background:linear-gradient(135deg,var(--bl3),var(--bl4));position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center"><span style="font-size:56px">⛵</span><div style="position:absolute;bottom:10px;left:12px;display:flex;gap:5px"><span class="chip bl">선상낚시</span><span class="chip n">★ '+bt.rt+'</span></div></div><div style="display:grid;grid-template-columns:repeat(4,1fr);background:var(--bg2);border-bottom:1px solid var(--bd)">'+s4H+'</div><div class="section"><div class="card"><h2 class="card-h">업체 소개</h2><p style="font-size:15px;line-height:1.7;color:var(--t2)">'+e(bt.desc)+'</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'+gearH+'</div></div></div><div class="section"><div class="card"><h2 class="card-h">대상 어종</h2><div class="rows">'+spR+'</div></div></div><div class="section"><div class="card"><h2 class="card-h">예약 일정</h2>'+schH+'</div></div><div style="padding:12px 14px 16px;display:flex;gap:8px"><button class="btn pri" data-act="call-boat" data-phone="'+e(bt.phone)+'" style="flex:1">'+I.phone+' 전화 예약</button><button class="btn sec" data-logpt="'+e(bt.nm)+' (선상)" style="flex:1">'+I.edit+' 일지 쓰기</button></div></div>');
+}
+function openNotif(){NT.forEach(function(n){n.rd=true;});render();var rows=NT.length===0?'<div style="text-align:center;padding:32px"><div style="font-size:36px;margin-bottom:10px">🔔</div><p style="color:var(--t3);font-size:15px">알림이 없습니다</p></div>':NT.map(function(n,idx){return '<div style="display:flex;gap:11px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--bd)"><div style="width:8px;height:8px;border-radius:4px;background:'+(n.rd?'var(--bd)':'var(--g)')+';flex-shrink:0;margin-top:6px"></div><div style="flex:1"><p style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:4px">'+e(n.tt)+'</p><p style="font-size:14px;color:var(--t2);line-height:1.5">'+e(n.bd)+'</p><p style="font-size:12px;color:var(--t3);margin-top:4px">'+n.tm+'</p></div><button class="ib" style="flex-shrink:0;color:var(--r);width:28px;height:28px;margin-top:2px" data-notif-del="'+idx+'">'+I.del+'</button></div>';}).join('');showOv('ov-notif','<div class="nav"><button class="nb" data-close="ov-notif">'+I.back+'</button><div class="nav-tx"><h1>알림</h1></div><button class="ib" style="color:var(--r)" data-act="notif-clear">'+I.del+'</button></div><div class="pg"><div style="padding:0 14px">'+rows+'</div></div>');}
+function openTide(pt){var td=getTideInfo(pt);var tiles=td.events.map(function(ev){return '<div style="background:var(--bg3);border-radius:var(--rd);padding:13px;text-align:center"><p style="font-size:12px;font-weight:600;color:'+(ev.t==='만조'?'var(--g)':'var(--t3)')+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">'+ev.t+'</p><p style="font-size:23px;font-weight:700;color:var(--t1)">'+ev.h+'</p><p style="font-size:14px;color:var(--t2);margin-top:4px">'+ev.ht+'</p></div>';}).join('');var ptName=pt?e(pt.nm):'현재 위치';showOv('ov-sp','<div class="nav"><button class="nb" data-close="ov-sp">'+I.back+'</button><div class="nav-tx"><h1>오늘의 물때</h1><p>'+td.muldae+'물 '+td.tideType+' · '+ptName+'</p></div></div><div class="pg"><div class="section"><div class="card"><div class="gr2" style="gap:8px">'+tiles+'</div><div style="margin-top:11px;background:var(--g3);border-radius:var(--rd);padding:13px"><p style="font-size:14px;color:var(--g2);line-height:1.7">만조 전후 1–2시간이 황금 타이밍.<br>오늘 추천: <strong>'+td.goldenStart+'–'+td.goldenEnd+'</strong></p></div></div></div></div>');}
+function openSp(name){var info=SPINFO[name]||{s:'연중',max:'–',avg:'–',note:'정보 준비 중'};var em={'감성돔':'🐟','벵에돔':'🐠','참돔':'🎏','돌돔':'🐡','무늬오징어':'🦑','우럭':'🐟','광어':'🐋','볼락':'🐡','전어':'🐟','고등어':'🐟','학공치':'🐠','놀래기':'🐟','방어':'🐟','부시리':'🐟','대구':'🐟','열기':'🐠'};var pts=PTS.filter(function(p){return p.sp.indexOf(name)>=0;});var ptR=pts.map(function(p){return '<div class="row" data-pid-sp="'+p.id+'"><div class="ri">'+I.pin+'</div><div class="rt"><div class="a">'+e(p.nm)+'</div><div class="b">'+e(p.rg)+' · '+p.ds+'km</div></div><span class="chip g">★ '+p.rt+'</span></div>';}).join('');showOv('ov-sp','<div class="nav"><button class="nb" data-close="ov-sp">'+I.back+'</button><div class="nav-tx"><p>어종 정보</p><h1>'+e(name)+'</h1></div></div><div class="pg"><div style="height:110px;background:var(--g3);display:flex;align-items:center;justify-content:center"><span style="font-size:60px">'+(em[name]||'🐟')+'</span></div><div class="section"><div class="card"><h2 class="card-h">기본 정보</h2>'+[['제철',info.s],['최대 크기',info.max],['평균 크기',info.avg]].map(function(kv){return '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd)"><span style="font-size:15px;color:var(--t2)">'+kv[0]+'</span><span style="font-size:15px;font-weight:600;color:var(--t1)">'+kv[1]+'</span></div>';}).join('')+'</div></div><div class="section"><div class="card"><h2 class="card-h">낚시 방법</h2><p style="font-size:15px;line-height:1.7;color:var(--t2)">'+e(info.note)+'</p></div></div>'+(pts.length?'<div class="section" style="padding-bottom:16px"><div class="card"><h2 class="card-h">주요 포인트</h2><div class="rows">'+ptR+'</div></div></div>':'')+'</div>');}
+function openSet(){
+  var tr=function(lb,key){return '<div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--bd);cursor:pointer" data-tgl="'+key+'"><span style="font-size:15px;color:var(--t1)">'+lb+'</span><div class="tgl'+(A[key]?' on':'')+'" id="tg-'+key+'"></div></div>';};
+  var frs=A.friends.map(function(f,i){return '<div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--bd)"><span style="font-size:15px;color:var(--t1)">'+e(f)+'</span><button class="ib" style="color:var(--r);padding:4px" data-del-fr="'+i+'">'+I.del+'</button></div>';}).join('');
+  showOv('ov-set','<div class="nav"><button class="nb" data-close="ov-set">'+I.back+'</button><div class="nav-tx"><h1>설정</h1></div></div><div class="pg"><div style="padding:0 14px"><p style="font-size:12px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin:14px 0 8px">내 계정</p><div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rd2);padding:0 14px">'+[['사용자명',A.userName],['지역 설정',A.userRegion],['단위',A.userUnit]].map(function(r){return '<div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--bd);cursor:pointer" data-set-acct="'+r[0]+'"><span style="font-size:15px;color:var(--t1)">'+r[0]+'</span><span class="acct-val" style="font-size:14px;color:var(--g);font-weight:500">'+r[1]+'</span></div>';}).join('')+'</div><p style="font-size:12px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin:18px 0 8px">데이터베이스 관리</p><div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rd2);padding:0 14px"><div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;cursor:pointer" data-act="open-pm"><span style="font-size:15px;font-weight:600;color:var(--g)">'+I.pin+' 포인트 DB 관리 폴더</span><span style="color:var(--t3)">'+I.arr+'</span></div></div><div style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px"><p style="font-size:12px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin:0">친구 목록 (동행 연동)</p><button class="ib" data-act="add-friend" style="width:26px;height:26px;border-radius:50%;background:var(--g);color:#fff;flex-shrink:0">'+I.plus+'</button></div><div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rd2);padding:0 14px">'+frs+'</div><p style="font-size:12px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin:18px 0 8px">선상업체 관리</p><div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rd2);padding:0 14px"><div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;cursor:pointer" data-act="add-boat"><span style="font-size:15px;color:var(--t1)">선상업체 신규 등록</span><span style="color:var(--t3)">'+I.arr+'</span></div></div><p style="font-size:12px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin:18px 0 8px">알림 설정</p><div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rd2);padding:0 14px">'+tr('조황 알림','tS')+tr('날씨 경보','tW')+tr('물때 알림','tT')+tr('앱 푸시 알림','tP')+'</div><p style="font-size:12px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin:18px 0 8px">앱 관리</p><div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rd2);padding:0 14px"><div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;cursor:pointer" onclick="resetApp()"><span style="font-size:15px;color:#ef4444;font-weight:600">앱 초기화</span><span style="font-size:13px;color:var(--t3)">일지·즐겨찾기·설정 삭제 →</span></div></div><div style="height:30px"></div></div></div>');
+}
+function openSetEdit(key){
+  if(key==='사용자명'){
+    showOv('ov-sp','<div class="nav"><button class="nb" data-close="ov-sp">'+I.back+'</button><div class="nav-tx"><h1>사용자명 변경</h1></div></div><div class="pg"><div class="section"><div class="card"><div class="fl"><label>이름</label><input id="set-edit-val" value="'+e(A.userName)+'" placeholder="이름 입력" maxlength="20" style="font-size:17px"></div><button class="btn pri" id="set-edit-save" style="margin-top:4px">저장</button></div></div></div>');
+    setTimeout(function(){var el=document.getElementById('set-edit-val');if(el){el.focus();el.select();}},120);
+  }else if(key==='지역 설정'){
+    var regions=['서울/경기','인천','충남/충북','전북','전남','경남','부산','울산 동구','울산 북구','울주군','경북','강원','제주'];
+    var rows=regions.map(function(r){return '<div class="row" style="cursor:pointer" data-set-region="'+r+'"><div class="rt"><div class="a">'+r+'</div></div>'+(A.userRegion===r?'<span style="color:var(--g);display:flex;align-items:center">'+I.ok+'</span>':'<span style="color:var(--t3)">'+I.chv+'</span>')+'</div>';}).join('');
+    showOv('ov-sp','<div class="nav"><button class="nb" data-close="ov-sp">'+I.back+'</button><div class="nav-tx"><h1>지역 설정</h1><p>주 낚시 지역을 선택하세요</p></div></div><div class="pg"><div class="section"><div class="card"><div class="rows">'+rows+'</div></div></div></div>');
+  }else if(key==='단위'){
+    var units=['미터 / °C','미터 / °F','피트 / °C','피트 / °F'];
+    var rows2=units.map(function(u){return '<div class="row" style="cursor:pointer" data-set-unit="'+u+'"><div class="rt"><div class="a">'+u+'</div></div>'+(A.userUnit===u?'<span style="color:var(--g);display:flex;align-items:center">'+I.ok+'</span>':'<span style="color:var(--t3)">'+I.chv+'</span>')+'</div>';}).join('');
+    showOv('ov-sp','<div class="nav"><button class="nb" data-close="ov-sp">'+I.back+'</button><div class="nav-tx"><h1>단위 설정</h1><p>거리 및 온도 단위</p></div></div><div class="pg"><div class="section"><div class="card"><div class="rows">'+rows2+'</div></div></div></div>');
+  }
+}
+function openAddFriend(){
+  showOv('ov-sp','<div class="nav"><button class="nb" data-close="ov-sp">'+I.back+'</button><div class="nav-tx"><h1>친구 등록</h1></div></div><div class="pg"><div class="section"><div class="card"><div class="fl"><label>이름</label><input id="add-friend-val" placeholder="친구 이름을 입력하세요" maxlength="20" style="font-size:17px"></div><button class="btn pri" id="add-friend-save" style="margin-top:4px">등록</button></div></div></div>');
+  setTimeout(function(){var el=document.getElementById('add-friend-val');if(el)el.focus();},120);
+}
+function openAddBoat(){
+  showOv('ov-add-boat','<div class="nav"><button class="nb" data-close="ov-add-boat">'+I.back+'</button><div class="nav-tx"><h1>선상업체 등록</h1></div><button class="btn pri" id="save-new-boat" style="width:auto;padding:8px 16px;font-size:14px">저장</button></div><div class="pg"><div class="section"><div class="card"><div class="fl"><label>업체명</label><input id="nb-nm" placeholder="예: 바다호"></div><div class="gr2 fl"><div><label>출항지 (항구)</label><input id="nb-port" placeholder="예: 방어진항"></div><div><label>요금 (만원)</label><input type="number" id="nb-price" placeholder="10"></div></div><div class="fl"><label>전화번호</label><input type="tel" id="nb-phone" placeholder="010-0000-0000"></div><div class="fl" style="margin-bottom:0"><label>선장님 분위기 / 업체 특징</label><input id="nb-vibe" placeholder="예: 친절함, 포인트 설명 잘해줌, 식사 제공 등"></div></div></div><div style="padding:10px 14px"><p style="font-size:13px;color:var(--t3);line-height:1.5">등록한 업체는 새 일지의 선상업체 선택 목록에 추가되며 예약 기능과 연동됩니다.</p></div></div>');
+}
+function saveLog(){var g=function(id){var el=document.getElementById(id);return el?el.value:'';};A.lf.dt=g('lf-dt')||A.lf.dt;A.lf.st=g('lf-st')||A.lf.st;A.lf.pt=g('lf-pt');A.lf.du=g('lf-du');var coRes=[];A.lco.forEach(function(c){if(c.n)coRes.push(c.n);});var coStr=coRes.length?coRes.join(', '):'';A.lf.ba=g('lf-ba');A.lf.gr=g('lf-gr');A.lf.nt=g('lf-nt');var total=A.lfi.reduce(function(a,f){return a+(parseInt(f.c)||0);},0);var newLog={id:A.lf.id||'j'+Date.now(),dt:A.lf.dt,st:A.lf.st,et:A.lf.et,pt:A.lf.pt||'미지정',rs:total>0?'+'+total+'미':'꽝',wx:'맑음',ti:(function(){var _sp={lat:A.lf.lat||35.5049,lng:A.lf.lng||129.4159};var _st=getTideInfo(_sp);return _st.muldae+'물 '+_st.tideType;})(),nt:A.lf.nt||'기록 없음',fi:A.lfi.filter(function(f){return f.c;}).map(function(f){return {n:f.s,c:parseInt(f.c)||0,s:f.sz||'–'};}),tp:(A.seaData&&A.seaData.tp)||'--',wt:(A.seaData&&A.seaData.wt)||'--',wi:(A.seaData&&A.seaData.wi)||'--',wv:(A.seaData&&A.seaData.wv)||'--',moon:(A.seaData&&A.seaData.moon)||calcMoonPhase(new Date()),co:coStr,photos:A.lf.photos||[],ba:A.lf.ba||'',gr:A.lf.gr||'',tp_fish:A.lf.tp||'방파제',boat:A.lf.boat||'',lat:A.lf.lat||35.5049,lng:A.lf.lng||129.4159,addr:A.lf.addr||'',markers:A.lf.markers||[]};if(A.lf.id){var idx=LOGS.findIndex(function(l){return l.id===A.lf.id;});if(idx>=0)LOGS[idx]=newLog;else LOGS.unshift(newLog);}else{LOGS.unshift(newLog);}A.lf={id:null,dt:todayStr(),st:'05:00',et:'10:00',pt:'',ba:'크릴 + 집어제',gr:'찌낚시',nt:'',tp:'방파제',boat:'',lat:35.5049,lng:129.4159,addr:'',markers:[],photos:[]};A.lfi=[{s:'감성돔',c:'',sz:''}];A.lco=[{n:''}];saveLogs();hideOv('ov-log');go('jnl');setTimeout(function(){showToast('일지가 저장되었습니다 ✓');},150);}
+document.getElementById('root').addEventListener('click',function(ev){
+  var t=ev.target;
+  if(t.closest('#fab-btn')){openLog('');return;}
+  var tb=t.closest('[data-go]');if(tb&&tb.closest('.tabs')){go(tb.dataset.go);return;}
+  if(tb&&!tb.closest('.tabs')){go(tb.dataset.go);return;}
+  var cl=t.closest('[data-close]');if(cl){hideOv(cl.dataset.close);return;}
+  var mkd=t.closest('[data-mk-del]');if(mkd){var mi=parseInt(mkd.dataset.mkDel);A.lf.markers.splice(mi,1);rebuildLog();return;}
+  var df=t.closest('[data-del-fr]');if(df){var di=parseInt(df.dataset.delFr);A.friends.splice(di,1);saveSettings();openSet();return;}
+  var nd=t.closest('[data-notif-del]');if(nd){var ni=parseInt(nd.dataset.notifDel);NT.splice(ni,1);openNotif();render();return;}
+  var ac=t.closest('[data-act]');if(ac){var a=ac.dataset.act;if(a==='notif'){openNotif();return;}if(a==='tide'){var tpid=ac.dataset.tidept;var tpt=tpid?PTS.find(function(x){return x.id===tpid;}):null;openTide(tpt);return;}if(a==='settings'){openSet();return;}if(a==='newlog'){openLog('');return;}if(a==='search'){openSearch();return;}if(a==='map-clear'){A.mQ='';A.mAct=null;if(A.tab==='map')updateMapMarkers();else render();return;}if(a==='jdate-clear'){A.jDate=null;render();return;}if(a==='notif-clear'){NT.length=0;hideOv('ov-notif');render();return;}if(a==='photo'){document.getElementById('photo-file').click();return;}if(a==='call-boat'){var ph=ac.dataset.phone;if(ph)window.location.href='tel:'+ph;return;}if(a==='hsearch-clear'){A.hQ='';rebuildSearch();return;}if(a==='add-friend'){openAddFriend();return;}if(a==='add-boat'){openAddBoat();return;}if(a==='open-pm'){openPM('전국');return;}if(a==='pm-tab'){openPM(ac.dataset.val);return;}if(a==='pm-add'){addMyPoint();return;}if(a==='map-gps'){if(navigator.geolocation){navigator.geolocation.getCurrentPosition(function(pos){if(leafletMap){var la=pos.coords.latitude,lo=pos.coords.longitude;A.myLat=la;A.myLng=lo;A.mCenter=[la,lo];updatePTSDist();leafletMap.setView([la,lo],13);if(!window.mapGpsDot){window.mapGpsDot=L.circleMarker([la,lo],{radius:8,fillColor:'#3b82f6',color:'#fff',weight:2,opacity:1,fillOpacity:0.8}).addTo(leafletMap);window.mapGpsDot.bindTooltip('내 위치',{permanent:true,direction:'top',offset:[0,-10]});}else{window.mapGpsDot.setLatLng([la,lo]);}fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+la+'&lon='+lo+'&zoom=16').then(function(r){return r.json();}).then(function(d){if(d&&d.display_name){var ad=d.display_name.split(',').slice(0,3).join(',');A.mQ=ad;var mq=document.getElementById('mqinput');if(mq)mq.value=ad;updateMapMarkers();}});}showToast('현재 위치로 이동했습니다');},function(){applyRegionFallback();showToast('GPS 사용 불가 — '+A.userRegion+' 기준으로 표시합니다');});}else{applyRegionFallback();showToast('GPS 미지원 — '+A.userRegion+' 기준으로 표시합니다');}return;}}
+  var bid=t.closest('[data-bid]');if(bid){openBoat(bid.dataset.bid);return;}
+  var bkBtn=t.closest('[data-book]');if(bkBtn){var bdt=bkBtn.dataset.book;showToast(bdt+' 예약 완료! 선장님이 연락드립니다.');bkBtn.textContent='예약완료';bkBtn.style.background='var(--bg3)';bkBtn.style.color='var(--t3)';return;}
+  var pi=t.closest('[data-pid]');if(pi){openPt(pi.dataset.pid);return;}
+  var pild=t.closest('[data-pid-ld]');if(pild){hideOv('ov-ld');setTimeout(function(){openPt(pild.dataset.pidLd);},220);return;}
+  var pisp=t.closest('[data-pid-sp]');if(pisp){hideOv('ov-sp');setTimeout(function(){openPt(pisp.dataset.pidSp);},220);return;}
+  var li=t.closest('[data-lid]');if(li){openLD(li.dataset.lid);return;}
+  var lipt=t.closest('[data-lid-pt]');if(lipt){hideOv('ov-pt');setTimeout(function(){openLD(lipt.dataset.lidPt);},220);return;}
+  var sp=t.closest('[data-sp]');if(sp){openSp(sp.dataset.sp);return;}
+  var lpt=t.closest('[data-logpt]');if(lpt){openLog(lpt.dataset.logpt);return;}
+  var rl=t.closest('[data-relog]');if(rl){A.lf.pt=rl.dataset.relog;hideOv('ov-ld');setTimeout(function(){openLog(rl.dataset.relog);},220);return;}
+  var mk=t.closest('[data-mkid]');if(mk){var mid=mk.dataset.mkid;if(A.mAct===mid){openPt(mid);}else{A.mAct=mid;if(A.tab==='map')updateMapMarkers();else render();}return;}
+  var mf=t.closest('[data-mf]');if(mf){A.mFlt=mf.dataset.mf;A.mAct=null;if(A.tab==='map'){document.querySelectorAll('.tag[data-mf]').forEach(function(el){el.classList.remove('on');});mf.classList.add('on');updateMapMarkers();}else render();return;}
+  var jf=t.closest('[data-jf]');if(jf){A.jFlt=jf.dataset.jf;render();return;}
+  var cd=t.closest('[data-cald]');if(cd){var dv=parseInt(cd.dataset.cald);A.jDate=A.jDate===dv?null:dv;render();return;}
+  var spd=t.closest('[data-spd]');if(spd){A.spd=spd.dataset.spd;render();return;}
+  var dl=t.closest('[data-deletelog]');if(dl){deleteLog(dl.dataset.deletelog);return;}
+  var edl=t.closest('[data-editlog]');if(edl){var id=edl.dataset.editlog;var ev=LOGS.find(function(l){return l.id===id;});if(ev){A.lf={id:ev.id,dt:ev.dt||todayStr(),st:ev.st||'05:00',et:ev.et||'10:00',pt:ev.pt||'',ba:ev.ba||'',gr:ev.gr||'',nt:ev.nt||'',tp:ev.tp_fish||'방파제',boat:ev.boat||'',lat:ev.lat||35.5049,lng:ev.lng||129.4159,addr:ev.addr||'',markers:ev.markers||[],photos:ev.photos||[]};A.lfi=ev.fi&&ev.fi.length?ev.fi.map(function(f){return {s:f.n||'감성돔',c:f.c||'',sz:(f.s==='–'||!f.s)?'':f.s};}):[{s:'감성돔',c:'',sz:''}];A.lco=ev.co?ev.co.split(', ').map(function(n){return {n:n};}):[{n:''}];hideOv('ov-ld');setTimeout(function(){openLog(ev.pt||'');},250);}return;}
+  var fav=t.closest('[data-favid]');if(fav){toggleFav(fav.dataset.favid);if(A.tab==='map')updateMapMarkers();return;}
+  if(t.closest('#log-save')||t.closest('#log-save2')){saveLog();return;}
+  if(t.closest('#save-new-boat')){var nm=document.getElementById('nb-nm').value.trim(),pt=document.getElementById('nb-port').value.trim(),pr=document.getElementById('nb-price').value.trim(),ph=document.getElementById('nb-phone').value.trim(),vb=document.getElementById('nb-vibe').value.trim();if(!nm){showToast('업체명을 입력하세요');return;}BOATS.push({nm:nm,port:pt||'미지정',price:pr||'10',avail:10,seats:10,time:'05:00-14:00',rt:'0.0',phone:ph||'010-0000-0000',rg:'신규 지역',desc:'선장 분위기: '+(vb||'정보 없음')});hideOv('ov-add-boat');showToast(nm+' 업체가 등록되었습니다!');return;}
+  if(t.closest('#log-back')){A.lf={id:null,dt:todayStr(),st:'05:00',et:'10:00',pt:'',ba:'크릴 + 집어제',gr:'찌낚시',nt:'',tp:'방파제',boat:'',lat:35.5049,lng:129.4159,addr:'',markers:[],photos:[]};A.lfi=[{s:'감성돔',c:'',sz:''}];A.lco=[{n:''}];hideOv('ov-log');return;}
+  if(t.closest('#add-fish')){A.lfi.push({s:'감성돔',c:'',sz:''});rebuildLog();return;}
+  var fd=t.closest('[data-fi-del]');if(fd){A.lfi.splice(parseInt(fd.dataset.fiDel),1);rebuildLog();return;}
+  var phd=t.closest('[data-ph-del]');if(phd){var idx=parseInt(phd.dataset.phDel);if(A.lf.photos)A.lf.photos.splice(idx,1);rebuildLog();return;}
+  if(t.closest('#add-co')){if(A.lco.length<4)A.lco.push({n:''});else showToast('동행은 최대 4명까지 가능합니다.');rebuildLog();return;}
+  var cd=t.closest('[data-co-del]');if(cd){A.lco.splice(parseInt(cd.dataset.coDel),1);rebuildLog();return;}
+
+  var tgl=t.closest('[data-tgl]');if(tgl){var k=tgl.dataset.tgl;A[k]=A[k]?0:1;var el2=document.getElementById('tg-'+k);if(el2)el2.className='tgl'+(A[k]?' on':'');saveSettings();return;}
+  if(t.closest('#set-edit-save')){var val=document.getElementById('set-edit-val').value.trim();if(val){A.userName=val;saveSettings();hideOv('ov-sp');openSet();showToast('사용자명이 변경되었습니다');}return;}
+  if(t.closest('#add-friend-save')){var val=document.getElementById('add-friend-val').value.trim();if(val){A.friends.push(val);saveSettings();hideOv('ov-sp');openSet();showToast(val+' 등록됨');}return;}
+  var sr=t.closest('[data-set-region]');if(sr){A.userRegion=sr.dataset.setRegion;saveSettings();hideOv('ov-sp');openSet();return;}
+  var su=t.closest('[data-set-unit]');if(su){A.userUnit=su.dataset.setUnit;saveSettings();hideOv('ov-sp');openSet();return;}
+  var sa=t.closest('[data-set-acct]');if(sa){openSetEdit(sa.dataset.setAcct);return;}
+});
+function openPM(filter){
+  A.pmFlt = filter || A.pmFlt || '전국';
+  var tabs = ['전국','가본 곳','내 포인트'].map(function(t){
+    return '<button class="'+(A.pmFlt===t?'on':'')+'" style="flex:1" data-act="pm-tab" data-val="'+t+'">'+t+'</button>';
+  }).join('');
+  var list = PTS.filter(function(p){
+    if(A.pmFlt==='가본 곳') return LOGS.some(function(l){return l.pt===p.nm;});
+    if(A.pmFlt==='내 포인트') return p.isMine;
+    return true;
+  });
+  var rows = list.length===0?'<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:15px">해당하는 포인트가 없습니다</div>':list.map(function(p){
+    var vC = LOGS.filter(function(l){return l.pt===p.nm;}).length;
+    return '<div class="row" data-pid="'+p.id+'"><div class="ri">'+I.pin+'</div><div class="rt"><div class="a">'+e(p.nm)+'</div><div class="b">'+e(p.rg)+' · '+(p.isMine?'내가 등록':'기본 제공')+'</div></div><div class="re"><span class="chip '+(vC>0?'g':'n')+'">'+(vC>0?vC+'회 방문':'미방문')+'</span></div></div>';
+  }).join('');
+  showOv('ov-pm','<div class="nav"><button class="nb" data-close="ov-pm">'+I.back+'</button><div class="nav-tx"><h1>포인트 DB 관리</h1></div><button class="btn pri" data-act="pm-add" style="width:auto;padding:6px 12px;font-size:13px;border-radius:16px">'+I.plus+' 내 포인트</button></div><div class="pg"><div style="padding:10px 14px 0"><div class="seg" style="width:100%;display:flex">'+tabs+'</div></div><div class="section" style="padding-bottom:16px"><div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><h2 class="card-h" style="margin:0">목록 ('+list.length+')</h2><span style="font-size:13px;color:var(--t3)">탭하여 상세 보기</span></div><div class="rows">'+rows+'</div></div></div></div>');
+}
+function addMyPoint(){
+  var nm = prompt('새로운 포인트의 이름을 입력하세요:\n(예: 비밀 갯바위, 양평 나만의 스팟 등)');
+  if(!nm || !nm.trim()) return;
+  var rg = prompt('지역을 간략히 입력하세요:\n(예: 경기 양평, 제주 앞바다)')||'지역 미상';
+  var nid = 'pm_'+Date.now();
+  var la = A.myLat || 35.5; var lo = A.myLng || 129.4;
+  PTS.unshift({id:nid, nm:nm.trim(), rg:rg.trim(), ds:0, dp:'미상', sp:['대상어 없음'], rt:'0.0', tp:'기타', lat:la, lng:lo, mo:[0,0,0,0,0,0,0,0,0,0,0,0], isMine:true});
+  updatePTSDist();
+  openPM('내 포인트');
+  showToast(nm+' 포인트가 데이터베이스에 등록되었습니다!');
+}
+document.getElementById('root').addEventListener('input',function(ev){var t=ev.target;if(t.id==='mqinput'){A.mQ=t.value;A.mAct=null;if(A.tab==='map')updateMapMarkers();else render();return;}if(t.id==='home-search'){A.hQ=t.value;rebuildSearch();return;}if(t.dataset.fiC!==undefined){var i=parseInt(t.dataset.fiC);if(A.lfi[i])A.lfi[i].c=t.value;}if(t.dataset.fiSz!==undefined){var i2=parseInt(t.dataset.fiSz);if(A.lfi[i2])A.lfi[i2].sz=t.value;}if(t.dataset.fiCustom!==undefined){var i3=parseInt(t.dataset.fiCustom);if(A.lfi[i3])A.lfi[i3].s=t.value;}
+  if(t.id==='lf-gr'){A.lf.gr=t.value;}
+  if(t.id==='lf-ba'){A.lf.ba=t.value;}
+});
+document.getElementById('root').addEventListener('change',function(ev){var t=ev.target;
+  if(t.dataset.grSel!==undefined){var ci=document.getElementById('lf-gr');if(t.value==='직접입력'){A.lf.gr='';if(ci){ci.value='';ci.style.display='';ci.focus();}}else{A.lf.gr=t.value;if(ci){ci.value=t.value;ci.style.display='none';}}return;}
+  if(t.dataset.baSel!==undefined){var ci2=document.getElementById('lf-ba');if(t.value==='직접입력'){A.lf.ba='';if(ci2){ci2.value='';ci2.style.display='';ci2.focus();}}else{A.lf.ba=t.value;if(ci2){ci2.value=t.value;ci2.style.display='none';}}return;}
+  if(t.dataset.fiS!==undefined){var i=parseInt(t.dataset.fiS);if(A.lfi[i]){var ci=t.parentElement.querySelector('[data-fi-custom]');if(t.value==='직접입력'){A.lfi[i].s='';if(ci){ci.style.display='';ci.focus();}}else{A.lfi[i].s=t.value;if(ci){ci.style.display='none';ci.value='';}}}return;}if(t.dataset.coN!==undefined){var j=parseInt(t.dataset.coN);if(A.lco[j])A.lco[j].n=t.value;}if(t.id==='lf-tp'){A.lf.tp=t.value;if(t.value!=='선상')A.lf.boat='';rebuildLog();}if(t.id==='lf-boat'){A.lf.boat=t.value;}});
+document.getElementById('photo-file').addEventListener('change', function(ev){
+  var files = ev.target.files;
+  if(files.length > 0) {
+    if(!A.lf.photos) A.lf.photos = [];
+    var toAdd = Math.min(files.length, 8 - A.lf.photos.length);
+    if(toAdd <= 0) {
+      showToast('사진은 최대 8장까지만 첨부할 수 있습니다.');
+      return;
+    }
+    var added = 0;
+    for(var i=0; i<toAdd; i++) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        A.lf.photos.push(e.target.result);
+        added++;
+        if(added === toAdd) {
+          rebuildLog();
+          showToast(added + '장의 사진이 추가되었습니다.');
+        }
+      };
+      reader.readAsDataURL(files[i]);
+    }
+  }
+});
+render();
+setTimeout(function() {
+  var splash = document.getElementById('splash-screen');
+  if(splash) {
+    splash.style.opacity = '0';
+    splash.style.visibility = 'hidden';
+  }
+}, 1500);
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed: ', err));
+  });
+}
+</script>
+</body>
+</html>
